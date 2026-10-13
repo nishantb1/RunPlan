@@ -46,7 +46,7 @@
     {
       "id": 5,
       "subject": "Task 6: App services and session model",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         2,
         3,
@@ -73,5 +73,5 @@
       "description": "**Goal:** Document test, build and install, and verify from a clean build.\n\n**Files:**\n- README.md\n\n**Acceptance Criteria:**\n- [ ] README has commands and on-device checklist\n- [ ] Clean test and clean build succeed\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-12-foundation-guided-workouts.md\n\n```json:metadata\n{\"files\":[\"README.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"README has commands and on-device checklist\",\"Clean test and clean build succeed\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-13T03:13:31.599Z"
+  "lastUpdated": "2026-10-13T03:14:47.691Z"
 }
