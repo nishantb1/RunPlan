@@ -37,7 +37,7 @@
     {
       "id": 4,
       "subject": "Task 5: JSON storage",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         1
       ],
@@ -73,5 +73,5 @@
       "description": "**Goal:** Document test, build and install, and verify from a clean build.\n\n**Files:**\n- README.md\n\n**Acceptance Criteria:**\n- [ ] README has commands and on-device checklist\n- [ ] Clean test and clean build succeed\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-12-foundation-guided-workouts.md\n\n```json:metadata\n{\"files\":[\"README.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"README has commands and on-device checklist\",\"Clean test and clean build succeed\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-13T03:12:37.352Z"
+  "lastUpdated": "2026-10-13T03:13:31.599Z"
 }
