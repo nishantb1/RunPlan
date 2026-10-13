@@ -4,7 +4,7 @@
     {
       "id": 0,
       "subject": "Task 1: Project scaffold",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Root xtool package and nested RunCore package that both build, with a placeholder screen.\n\n**Files:**\n- Package.swift\n- xtool.yml\n- Info.plist\n- RunCore/Package.swift\n- RunCore/Sources/RunCore/Pace/Pace.swift\n- RunCore/Tests/RunCoreTests/PaceTests.swift\n- Sources/RunPlan/App/RunPlanApp.swift\n- Sources/RunPlan/App/RootView.swift\n- Sources/RunPlan/Resources/beep.wav\n\n**Acceptance Criteria:**\n- [ ] Pace tests pass\n- [ ] xtool dev build writes xtool/RunPlan.app\n- [ ] Built Info.plist has UIBackgroundModes audio\n\n**Verify:** swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-12-foundation-guided-workouts.md\n\n```json:metadata\n{\"files\":[\"Package.swift\",\"xtool.yml\",\"Info.plist\",\"RunCore/Package.swift\",\"RunCore/Sources/RunCore/Pace/Pace.swift\",\"RunCore/Tests/RunCoreTests/PaceTests.swift\",\"Sources/RunPlan/App/RunPlanApp.swift\",\"Sources/RunPlan/App/RootView.swift\",\"Sources/RunPlan/Resources/beep.wav\"],\"verifyCommand\":\"swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Pace tests pass\",\"xtool dev build writes xtool/RunPlan.app\",\"Built Info.plist has UIBackgroundModes audio\"]}\n```"
     },
     {
@@ -73,5 +73,5 @@
       "description": "**Goal:** Document test, build and install, and verify from a clean build.\n\n**Files:**\n- README.md\n\n**Acceptance Criteria:**\n- [ ] README has commands and on-device checklist\n- [ ] Clean test and clean build succeed\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-12-foundation-guided-workouts.md\n\n```json:metadata\n{\"files\":[\"README.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"README has commands and on-device checklist\",\"Clean test and clean build succeed\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-13T02:50:36.683Z"
+  "lastUpdated": "2026-10-13T03:08:47.364Z"
 }
