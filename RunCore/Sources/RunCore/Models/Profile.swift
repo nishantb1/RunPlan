@@ -7,7 +7,7 @@ public struct Profile: Codable, Equatable, Sendable {
 
     public var goal: Goal
     public var fitness: Fitness
-    /// Kept sorted Monday first.
+    /// Sorted Monday first by `init`; the generator re-sorts, so later edits need not.
     public var runDays: [Weekday]
     public var planWeeks: Int
     public var startDate: Date
