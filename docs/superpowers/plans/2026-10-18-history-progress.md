@@ -46,7 +46,7 @@ Rules: one type per file (small private helper views may share their screen's fi
 - **Statistics:**
   - Weeks start on Monday.
   - Weekly distance covers the last 8 weeks, empty weeks included.
-  - The pace trend is each run's average pace, for the last 12 runs with a distance, oldest first.
+  - The pace trend is each run's average pace, for the last 12 runs of at least 100 m, oldest first.
   - The longest run is the greatest distance.
   - Plan completion counts the plan's workouts that have a record.
 - **Charts** (per the data-visualisation guidance):
@@ -245,7 +245,7 @@ git commit -m "Add settings and their store"
 - [ ] The longest run is the 4-mile one; with no distances there is none
 - [ ] Plan progress counts completed workouts (2 of 24, fraction 1/12)
 
-**Verify:** TEST with `--filter RunStatsTests` → `Executed 4 tests, with 0 failures`
+**Verify:** TEST with `--filter RunStatsTests` → `Executed 6 tests, with 0 failures`
 
 **Steps:**
 
@@ -290,6 +290,24 @@ final class RunStatsTests: XCTestCase {
     func testPaceTrendSkipsRunsWithoutDistance() {
         XCTAssertEqual(RunStats.paceTrend(runs, limit: 2).map(\.secondsPerMile), [660, 540])
         XCTAssertEqual(RunStats.paceTrend(runs, limit: 10).map(\.secondsPerMile), [600, 600, 660, 540])
+    }
+
+    func testWeeksStartOnMondayWhateverTheCalendarSays() {
+        var sundayFirst = TestCalendar.utc
+        sundayFirst.firstWeekday = 1
+        let mondayMidnight = TestCalendar.date(2026, 11, 9)
+        let boundaryRuns = [
+            RunRecord(mode: .treadmill, startedAt: mondayMidnight.addingTimeInterval(-1), durationSeconds: 600, distanceMeters: 1000),
+            RunRecord(mode: .treadmill, startedAt: mondayMidnight, durationSeconds: 600, distanceMeters: 2000),
+        ]
+        let weeks = RunStats.weeklyTotals(boundaryRuns, weeks: 2, endingOn: TestCalendar.date(2026, 11, 10), calendar: sundayFirst)
+        XCTAssertEqual(weeks.map(\.weekStart), [TestCalendar.date(2026, 11, 2), mondayMidnight])
+        XCTAssertEqual(weeks.map(\.meters), [1000, 2000])
+    }
+
+    func testPaceTrendIgnoresRunsTooShortToTime() {
+        let short = RunRecord(mode: .outdoor, startedAt: TestCalendar.date(2026, 11, 20), durationSeconds: 5, distanceMeters: 50)
+        XCTAssertEqual(RunStats.paceTrend(runs + [short], limit: 10).map(\.secondsPerMile), [600, 600, 660, 540])
     }
 
     func testLongestRun() {
@@ -362,6 +380,10 @@ import Foundation
 /// Figures for the Progress screen, computed from saved runs.
 public enum RunStats {
 
+    /// Runs shorter than this (ended straight away, say, with a little GPS drift) give a
+    /// meaningless pace, so the pace trend leaves them out.
+    static let minimumPaceMeters = 100.0
+
     /// Distance and run count for each of the last `weeks` Monday-start weeks up to the week
     /// containing `now`, oldest first. Weeks without runs are included.
     public static func weeklyTotals(_ records: [RunRecord], weeks: Int, endingOn now: Date, calendar: Calendar) -> [WeeklyTotal] {
@@ -376,9 +398,10 @@ public enum RunStats {
         }
     }
 
-    /// Average pace of each run that has a distance, oldest first, keeping the last `limit`.
+    /// Average pace of each run of at least 100 m, oldest first, keeping the last `limit`.
     public static func paceTrend(_ records: [RunRecord], limit: Int) -> [PacePoint] {
         let points = records
+            .filter { $0.distanceMeters >= minimumPaceMeters }
             .sorted { $0.startedAt < $1.startedAt }
             .compactMap { record in
                 Pace.secondsPerMile(distanceMeters: record.distanceMeters, durationSeconds: record.durationSeconds)

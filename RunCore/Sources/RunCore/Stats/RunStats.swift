@@ -3,6 +3,10 @@ import Foundation
 /// Figures for the Progress screen, computed from saved runs.
 public enum RunStats {
 
+    /// Runs shorter than this (ended straight away, say, with a little GPS drift) give a
+    /// meaningless pace, so the pace trend leaves them out.
+    static let minimumPaceMeters = 100.0
+
     /// Distance and run count for each of the last `weeks` Monday-start weeks up to the week
     /// containing `now`, oldest first. Weeks without runs are included.
     public static func weeklyTotals(_ records: [RunRecord], weeks: Int, endingOn now: Date, calendar: Calendar) -> [WeeklyTotal] {
@@ -17,9 +21,10 @@ public enum RunStats {
         }
     }
 
-    /// Average pace of each run that has a distance, oldest first, keeping the last `limit`.
+    /// Average pace of each run of at least 100 m, oldest first, keeping the last `limit`.
     public static func paceTrend(_ records: [RunRecord], limit: Int) -> [PacePoint] {
         let points = records
+            .filter { $0.distanceMeters >= minimumPaceMeters }
             .sorted { $0.startedAt < $1.startedAt }
             .compactMap { record in
                 Pace.secondsPerMile(distanceMeters: record.distanceMeters, durationSeconds: record.durationSeconds)

@@ -36,6 +36,24 @@ final class RunStatsTests: XCTestCase {
         XCTAssertEqual(RunStats.paceTrend(runs, limit: 10).map(\.secondsPerMile), [600, 600, 660, 540])
     }
 
+    func testWeeksStartOnMondayWhateverTheCalendarSays() {
+        var sundayFirst = TestCalendar.utc
+        sundayFirst.firstWeekday = 1
+        let mondayMidnight = TestCalendar.date(2026, 11, 9)
+        let boundaryRuns = [
+            RunRecord(mode: .treadmill, startedAt: mondayMidnight.addingTimeInterval(-1), durationSeconds: 600, distanceMeters: 1000),
+            RunRecord(mode: .treadmill, startedAt: mondayMidnight, durationSeconds: 600, distanceMeters: 2000),
+        ]
+        let weeks = RunStats.weeklyTotals(boundaryRuns, weeks: 2, endingOn: TestCalendar.date(2026, 11, 10), calendar: sundayFirst)
+        XCTAssertEqual(weeks.map(\.weekStart), [TestCalendar.date(2026, 11, 2), mondayMidnight])
+        XCTAssertEqual(weeks.map(\.meters), [1000, 2000])
+    }
+
+    func testPaceTrendIgnoresRunsTooShortToTime() {
+        let short = RunRecord(mode: .outdoor, startedAt: TestCalendar.date(2026, 11, 20), durationSeconds: 5, distanceMeters: 50)
+        XCTAssertEqual(RunStats.paceTrend(runs + [short], limit: 10).map(\.secondsPerMile), [600, 600, 660, 540])
+    }
+
     func testLongestRun() {
         XCTAssertEqual(RunStats.longestRun(runs)?.distanceMeters, Pace.meters(fromMiles: 4))
         XCTAssertNil(RunStats.longestRun([run(11, 17, miles: 0, minutes: 25)]))
