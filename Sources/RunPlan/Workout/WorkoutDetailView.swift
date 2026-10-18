@@ -7,6 +7,7 @@ struct WorkoutDetailView: View {
     let workoutID: UUID
 
     @State private var choosingMode = false
+    @State private var editing = false
 
     var body: some View {
         if let workout = app.plan?.workout(id: workoutID) {
@@ -36,6 +37,12 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(workout.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button("Edit") { editing = true }
+        }
+        .sheet(isPresented: $editing) {
+            WorkoutEditView(workout: workout) { app.update($0) }
+        }
         .safeAreaInset(edge: .bottom) {
             Button {
                 choosingMode = true
