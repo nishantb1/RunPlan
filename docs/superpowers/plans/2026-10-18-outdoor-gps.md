@@ -1443,7 +1443,7 @@ In `RunCore/Sources/RunCore/Engine/StepExpander.swift`, add this case at the end
 In `RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift`, in `checkValid`, the `switch step.measure` gets a third case after the `.distance` line:
 
 ```swift
-                    case .open: XCTFail("open step in a generated plan", context)
+                    case .open: XCTFail("open step in a generated plan: \(context)")
 ```
 
 In `Sources/RunPlan/Workout/WorkoutDetailView.swift`, in `measure(for:)`, add after the `.distance` case:
