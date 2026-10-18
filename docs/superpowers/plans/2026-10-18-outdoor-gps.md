@@ -2183,6 +2183,8 @@ git commit -m "Add the outdoor start flow and free run"
 - [ ] A distance step outdoors shows the distance left; a timed step counts down; an open step counts up
 - [ ] With nothing planned (free run) the progress bar is replaced by elapsed time, and a single-step run hides the step counter and next-step line
 - [ ] Skip forward is disabled on the last step, so ending a run always goes through Stop and its confirmation
+- [ ] The controls stay pinned at the bottom with the rest scrolling, the GPS banner fits one line, and each
+  control has a VoiceOver label
 - [ ] Treadmill layout unchanged apart from that; BUILD succeeds
 
 **Verify:** BUILD → success
@@ -2209,46 +2211,52 @@ struct LiveWorkoutView: View {
             Color.black.ignoresSafeArea()
 
             if let snapshot = session.snapshot {
-                VStack(spacing: isOutdoor ? 14 : 20) {
-                    if snapshot.stepCount > 1 {
-                        Text("Step \(snapshot.stepIndex + 1) of \(snapshot.stepCount)")
-                            .font(.headline)
-                            .foregroundStyle(.gray)
+                // The controls stay pinned at the bottom; everything above scrolls if a small
+                // screen or large text would otherwise push them off.
+                VStack(spacing: 12) {
+                    ScrollView {
+                        VStack(spacing: isOutdoor ? 14 : 20) {
+                            if snapshot.stepCount > 1 {
+                                Text("Step \(snapshot.stepIndex + 1) of \(snapshot.stepCount)")
+                                    .font(.headline)
+                                    .foregroundStyle(.gray)
+                            }
+
+                            Text(CueText.displayKind(snapshot.step.kind).uppercased())
+                                .font(.system(size: isOutdoor ? 52 : 64, weight: .heavy))
+                                .foregroundStyle(color(for: snapshot.step.kind))
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+
+                            Text(CueText.target(for: snapshot.step, mode: session.mode) ?? "No target")
+                                .font(.system(size: isOutdoor ? 56 : 72, weight: .bold))
+                                .monospacedDigit()
+                                .foregroundStyle(.white)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+
+                            Text(clock(for: snapshot))
+                                .font(.system(size: isOutdoor ? 72 : 88, weight: .semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(.white)
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
+
+                            if isOutdoor {
+                                outdoorStats
+                            }
+
+                            progress(snapshot)
+
+                            if snapshot.stepCount > 1 {
+                                Text(nextText(snapshot))
+                                    .font(.title3)
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-
-                    Text(CueText.displayKind(snapshot.step.kind).uppercased())
-                        .font(.system(size: isOutdoor ? 52 : 64, weight: .heavy))
-                        .foregroundStyle(color(for: snapshot.step.kind))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-
-                    Text(CueText.target(for: snapshot.step, mode: session.mode) ?? "No target")
-                        .font(.system(size: isOutdoor ? 56 : 72, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-
-                    Text(clock(for: snapshot))
-                        .font(.system(size: isOutdoor ? 72 : 88, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-
-                    if isOutdoor {
-                        outdoorStats
-                    }
-
-                    progress(snapshot)
-
-                    if snapshot.stepCount > 1 {
-                        Text(nextText(snapshot))
-                            .font(.title3)
-                            .foregroundStyle(.gray)
-                    }
-
-                    Spacer()
+                    .scrollBounceBehavior(.basedOnSize)
 
                     controls(snapshot)
                 }
@@ -2264,7 +2272,9 @@ struct LiveWorkoutView: View {
         VStack(spacing: 8) {
             if !session.hasSignal() {
                 Label("GPS signal lost. Distance is paused.", systemImage: "location.slash")
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(.black)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -2309,17 +2319,17 @@ struct LiveWorkoutView: View {
 
     private func controls(_ snapshot: WorkoutEngine.Snapshot) -> some View {
         HStack(spacing: 24) {
-            controlButton("backward.end.fill") { session.skipBack() }
-            controlButton(session.isPaused ? "play.fill" : "pause.fill") {
+            controlButton("backward.end.fill", label: "Back") { session.skipBack() }
+            controlButton(session.isPaused ? "play.fill" : "pause.fill", label: session.isPaused ? "Resume" : "Pause") {
                 if session.isPaused { session.resume() } else { session.pause() }
             }
             // On the last step, skipping forward would end the run without asking; Stop asks.
-            controlButton("forward.end.fill", enabled: snapshot.nextStep != nil) { session.skipForward() }
-            controlButton("stop.fill") { confirmingEnd = true }
+            controlButton("forward.end.fill", label: "Skip", enabled: snapshot.nextStep != nil) { session.skipForward() }
+            controlButton("stop.fill", label: "End workout") { confirmingEnd = true }
         }
     }
 
-    private func controlButton(_ systemName: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
+    private func controlButton(_ systemName: String, label: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 30))
@@ -2327,6 +2337,7 @@ struct LiveWorkoutView: View {
                 .background(Color.white.opacity(0.15), in: Circle())
                 .foregroundStyle(.white)
         }
+        .accessibilityLabel(label)
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.3)
     }

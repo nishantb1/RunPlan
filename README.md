@@ -48,7 +48,8 @@ changes after a reboot, rerun the `netsh` line with the new one.
 - Start a planned workout in Treadmill mode: the step and speed are spoken.
 - Beeps play at 3, 2 and 1 seconds before each change, over music.
 - Lock the phone for two steps: cues keep playing and the screen is correct on unlock.
-- Pause, skip forward, skip back and end all behave.
+- Pause, skip forward, skip back and end all behave (skip forward is dimmed on the last step; end
+  with Stop).
 - Force-quit mid-workout and reopen: the app offers to resume, paused.
 - Save the summary: the run appears in the Runs tab after relaunch.
 
