@@ -1590,9 +1590,11 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func stop() {
+        // Always switch background updates off, even if updates already stopped because
+        // permission was withdrawn mid-run.
+        manager.allowsBackgroundLocationUpdates = false
         guard isUpdating else { return }
         manager.stopUpdatingLocation()
-        manager.allowsBackgroundLocationUpdates = false
         isUpdating = false
         latest = nil
     }
