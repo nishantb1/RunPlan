@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+// SwiftUI's Map lives in this cross-import overlay; xtool's build does not pull it in on its own.
 import _MapKit_SwiftUI
 import RunCore
 

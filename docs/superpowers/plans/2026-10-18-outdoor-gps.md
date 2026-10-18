@@ -2407,6 +2407,8 @@ git commit -m "Show distance, pace and GPS state on the live screen"
 ```swift
 import SwiftUI
 import MapKit
+// SwiftUI's Map lives in this cross-import overlay; xtool's build does not pull it in on its own.
+import _MapKit_SwiftUI
 import RunCore
 
 /// One screen, every field skippable. Outdoors the distance is measured and the splits and
