@@ -96,6 +96,7 @@ struct OnboardingView: View {
                             }
                         }
                     }
+                    .accessibilityAddTraits(model.runDays.contains(day) ? .isSelected : [])
                 }
             } header: {
                 Text("Run days")
@@ -106,7 +107,12 @@ struct OnboardingView: View {
                 Stepper("\(model.planWeeks) weeks", value: $model.planWeeks, in: Profile.planWeeksRange)
             }
             Section("Start") {
-                DatePicker("Start date", selection: $model.startDate, displayedComponents: .date)
+                DatePicker(
+                    "Start date",
+                    selection: $model.startDate,
+                    in: Calendar.current.startOfDay(for: Date())...,
+                    displayedComponents: .date
+                )
             }
         }
     }

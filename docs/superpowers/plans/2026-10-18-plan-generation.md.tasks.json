@@ -55,7 +55,7 @@
     {
       "id": 6,
       "subject": "Task 7: Onboarding",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         5
       ],
@@ -89,5 +89,5 @@
       "description": "**Goal:** Record stage 3 deviations in the spec, add the README checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes profile inside plan.json, derived daysPerWeek, omitted units\n- [ ] README has stage 3 checklist\n- [ ] Full TEST passes and BUILD succeeds\n- [ ] Installed on the phone and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes profile inside plan.json, derived daysPerWeek, omitted units\",\"README has stage 3 checklist\",\"Full TEST passes and BUILD succeeds\",\"Installed on the phone and checklist handed to the user\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-18T19:21:13.000Z"
+  "lastUpdated": "2026-10-18T19:25:59.000Z"
 }

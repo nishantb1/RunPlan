@@ -1945,17 +1945,27 @@ struct DurationPicker: View {
             Picker("Minutes", selection: minutes) {
                 ForEach(minuteRange, id: \.self) { Text("\($0) min").tag($0) }
             }
+            .frame(maxWidth: .infinity)
+            .clipped()
             Picker("Seconds", selection: secondsPart) {
                 ForEach(0..<60, id: \.self) { Text(String(format: "%02d s", $0)).tag($0) }
             }
+            .frame(maxWidth: .infinity)
+            .clipped()
         }
         .pickerStyle(.wheel)
         .frame(height: 150)
     }
 
+    /// The minute the wheel shows. Both bindings write from it, so the wheels and the value agree
+    /// even when `seconds` starts outside `minuteRange`.
+    private var clampedMinutes: Int {
+        min(max(seconds / 60, minuteRange.lowerBound), minuteRange.upperBound)
+    }
+
     private var minutes: Binding<Int> {
         Binding(
-            get: { min(max(seconds / 60, minuteRange.lowerBound), minuteRange.upperBound) },
+            get: { clampedMinutes },
             set: { seconds = $0 * 60 + seconds % 60 }
         )
     }
@@ -1963,7 +1973,7 @@ struct DurationPicker: View {
     private var secondsPart: Binding<Int> {
         Binding(
             get: { seconds % 60 },
-            set: { seconds = (seconds / 60) * 60 + $0 }
+            set: { seconds = clampedMinutes * 60 + $0 }
         )
     }
 }
@@ -2153,6 +2163,7 @@ struct OnboardingView: View {
                             }
                         }
                     }
+                    .accessibilityAddTraits(model.runDays.contains(day) ? .isSelected : [])
                 }
             } header: {
                 Text("Run days")
@@ -2163,7 +2174,12 @@ struct OnboardingView: View {
                 Stepper("\(model.planWeeks) weeks", value: $model.planWeeks, in: Profile.planWeeksRange)
             }
             Section("Start") {
-                DatePicker("Start date", selection: $model.startDate, displayedComponents: .date)
+                DatePicker(
+                    "Start date",
+                    selection: $model.startDate,
+                    in: Calendar.current.startOfDay(for: Date())...,
+                    displayedComponents: .date
+                )
             }
         }
     }
