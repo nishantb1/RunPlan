@@ -26,6 +26,18 @@ public enum CueText {
         }
     }
 
+    /// e.g. "Mile 2, 9 minutes 32 seconds."
+    public static func splitAnnouncement(_ split: Split) -> String {
+        "Mile \(split.index), \(spokenDuration(split.durationSeconds))."
+    }
+
+    public static func paceCue(_ cue: PaceCue) -> String {
+        switch cue {
+        case .speedUp: return "Pick up the pace."
+        case .slowDown: return "Ease off the pace."
+        }
+    }
+
     public static func displayKind(_ kind: StepKind) -> String {
         switch kind {
         case .warmup: return "Warm up"
