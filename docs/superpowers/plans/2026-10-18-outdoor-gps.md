@@ -72,6 +72,7 @@ Sources/RunPlan/
   Workout/WorkoutSessionModel.swift LiveWorkoutView.swift SummaryView.swift
           WorkoutDetailView.swift                                                        (modify)
   App/AppModel.swift  Plan/PlanView.swift StepEditor.swift                               (modify)
+  Onboarding/OnboardingModel.swift OnboardingView.swift PlanPreviewView.swift           (modify, Task 5a)
 README.md, docs/superpowers/specs/2026-10-12-runplan-design.md                           (modify)
 ```
 
@@ -794,7 +795,7 @@ git commit -m "Add pace cues and split wording"
 - [ ] A pace measured before GPS was lost gives no pace cue afterwards
 - [ ] The tracker round-trips through JSON inside `ActiveWorkout`, and an `ActiveWorkout` saved without it still loads
 
-**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 6 tests, with 0 failures`
+**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 7 tests, with 0 failures`
 
 **Steps:**
 
@@ -874,6 +875,27 @@ final class OutdoorTrackerTests: XCTestCase {
 
         XCTAssertEqual(events, [])
         XCTAssertFalse(tracker.hasSignal(now: at(120)))
+    }
+
+    func testRestartedStepMeasuresDistanceAfresh() throws {
+        let engine = WorkoutEngine(planSteps: [
+            Step(kind: .run, measure: .distance(meters: 400)),
+            Step(kind: .cooldown, measure: .time(seconds: 300)),
+        ])
+        engine.start(now: trackStart)
+        var tracker = OutdoorTracker()
+        for second in 0...100 {
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+            _ = tracker.events(for: try XCTUnwrap(engine.snapshot(now: at(second))), now: at(second))
+        }
+
+        // Skip back on the first step restarts it with the same step index.
+        engine.skipBack(now: at(100))
+        tracker.restartStep()
+        let snapshot = try XCTUnwrap(engine.snapshot(now: at(100)))
+        XCTAssertEqual(snapshot.stepIndex, 0)
+        _ = tracker.events(for: snapshot, now: at(100))
+        XCTAssertEqual(try XCTUnwrap(tracker.stepMetersRemaining(for: snapshot)), 400, accuracy: 1e-6)
     }
 
     func testPausedFixesAddNothing() {
@@ -975,6 +997,7 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     /// not cleared when fixes stop, so check `hasSignal(now:)` before showing it.
     public var currentPace: Int? { smoother.secondsPerMile }
 
+    /// True while a fix that passed the filter arrived within the last 10 s.
     public func hasSignal(now: Date) -> Bool {
         guard let lastFixAt else { return false }
         return now.timeIntervalSince(lastFixAt) <= Self.signalTimeoutSeconds
@@ -1028,6 +1051,12 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
             events.append(.paceCue(cue))
         }
         return events
+    }
+
+    /// Call when the runner skips or restarts a step by hand. The next `events` call then measures
+    /// the step's distance afresh; skip back on the first step keeps the same step index.
+    public mutating func restartStep() {
+        stepIndex = nil
     }
 
     /// Distance left in the current step, or nil when the step is not measured by distance.
@@ -1085,6 +1114,216 @@ Expected: all tests pass.
 ```bash
 git add RunCore/Sources/RunCore/Tracking/OutdoorEvent.swift RunCore/Sources/RunCore/Tracking/OutdoorTracker.swift RunCore/Sources/RunCore/Models/ActiveWorkout.swift RunCore/Tests/RunCoreTests/OutdoorTrackerTests.swift
 git commit -m "Add outdoor tracker and save it in the checkpoint"
+```
+
+---
+
+### Task 5a: Change plan
+
+**Goal:** From the Plan tab, reopen onboarding filled in with the current answers, change them, and replace the plan after a confirmation. Requested by the user after testing stage 3; it is independent of GPS, so it runs before Task 6.
+
+**Files:**
+- Modify: `Sources/RunPlan/Onboarding/OnboardingModel.swift`, `Sources/RunPlan/Onboarding/OnboardingView.swift`, `Sources/RunPlan/Onboarding/PlanPreviewView.swift`, `Sources/RunPlan/Plan/PlanView.swift`
+
+**Acceptance Criteria:**
+- [ ] The Plan tab has Change plan, which opens onboarding in a sheet with every answer filled in from the current plan
+- [ ] A start date in the past is moved to today
+- [ ] Cancel on the first page closes the sheet without changing anything
+- [ ] Save asks "Replace your plan?"; confirming generates and saves the new plan and closes the sheet; runs already done stay in Runs
+- [ ] First-launch onboarding is unchanged; BUILD succeeds
+
+**Verify:** BUILD → success
+
+**Steps:**
+
+- [ ] **Step 1: Fill the draft from a profile**
+
+In `Sources/RunPlan/Onboarding/OnboardingModel.swift`, add this initializer directly after the line `    var startDate = Calendar.current.startOfDay(for: Date())`:
+
+```swift
+
+    /// A blank draft for first launch, or one filled in from the current plan's answers so they
+    /// can be changed. A start date in the past moves to today.
+    init(profile: Profile? = nil) {
+        guard let profile else { return }
+        distance = profile.goal.distance
+        hasGoalTime = profile.goal.targetSeconds != nil
+        goalSeconds = profile.goal.targetSeconds ?? Self.defaultSeconds(for: profile.goal.distance)
+        switch profile.fitness {
+        case .newRunner:
+            fitnessChoice = .newRunner
+        case .runsFiveMinutes:
+            fitnessChoice = .runsFiveMinutes
+        case .runsTwentyMinutes:
+            fitnessChoice = .runsTwentyMinutes
+        case .recentRace(let distance, let seconds):
+            fitnessChoice = .recentRace
+            raceDistance = distance
+            raceSeconds = seconds
+        }
+        runDays = Set(profile.runDays)
+        planWeeks = profile.planWeeks
+        let today = Calendar.current.startOfDay(for: Date())
+        startDate = max(Calendar.current.startOfDay(for: profile.startDate), today)
+    }
+```
+
+- [ ] **Step 2: Let onboarding edit an existing plan**
+
+In `Sources/RunPlan/Onboarding/OnboardingView.swift`:
+
+1. Replace the doc comment and the first lines of the struct:
+
+```swift
+/// First launch: goal, current fitness and schedule, then a preview of the plan before it is
+/// saved.
+struct OnboardingView: View {
+    @State private var model = OnboardingModel()
+```
+
+with:
+
+```swift
+/// Goal, current fitness and schedule, then a preview of the plan before it is saved. Shown on
+/// first launch, and from the Plan tab to change the current plan.
+struct OnboardingView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var model: OnboardingModel
+    /// True when changing an existing plan, rather than on first launch.
+    private let isChangingPlan: Bool
+
+    init(changing profile: Profile? = nil) {
+        _model = State(initialValue: OnboardingModel(profile: profile))
+        isChangingPlan = profile != nil
+    }
+```
+
+2. In the toolbar, replace:
+
+```swift
+                    if model.page != .goal {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Back") { model.back() }
+                        }
+                    }
+```
+
+with:
+
+```swift
+                    if model.page != .goal {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Back") { model.back() }
+                        }
+                    } else if isChangingPlan {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { dismiss() }
+                        }
+                    }
+```
+
+3. Replace `        case .preview: PlanPreviewView(model: model)` with:
+
+```swift
+        case .preview: PlanPreviewView(model: model, isReplacing: isChangingPlan)
+```
+
+- [ ] **Step 3: Confirm before replacing**
+
+In `Sources/RunPlan/Onboarding/PlanPreviewView.swift`:
+
+1. Replace:
+
+```swift
+    @Environment(AppModel.self) private var app
+    let model: OnboardingModel
+```
+
+with:
+
+```swift
+    @Environment(AppModel.self) private var app
+    @Environment(\.dismiss) private var dismiss
+    let model: OnboardingModel
+    /// True when this plan replaces an existing one, which needs a confirmation.
+    let isReplacing: Bool
+
+    @State private var confirmingReplace = false
+```
+
+2. Replace the Save button's action and label:
+
+```swift
+            Button {
+                app.createPlan(from: model.profile)
+            } label: {
+                Text("Save plan").font(.title3.bold()).frame(maxWidth: .infinity).padding(.vertical, 8)
+            }
+```
+
+with:
+
+```swift
+            Button {
+                if isReplacing {
+                    confirmingReplace = true
+                } else {
+                    app.createPlan(from: model.profile)
+                }
+            } label: {
+                Text(isReplacing ? "Replace plan" : "Save plan")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+```
+
+3. Directly after the `.safeAreaInset(edge: .bottom) { ... }` modifier's closing brace, add:
+
+```swift
+        .confirmationDialog("Replace your plan?", isPresented: $confirmingReplace, titleVisibility: .visible) {
+            Button("Replace plan", role: .destructive) {
+                app.createPlan(from: model.profile)
+                dismiss()
+            }
+        } message: {
+            Text("The new plan starts fresh. Runs you have already done stay in Runs.")
+        }
+```
+
+- [ ] **Step 4: Add Change plan to the Plan tab**
+
+In `Sources/RunPlan/Plan/PlanView.swift`:
+
+1. Add under `    @Environment(AppModel.self) private var app`:
+
+```swift
+    @State private var changingPlan = false
+```
+
+2. Directly after the `.navigationDestination(for: UUID.self) { id in ... }` modifier's closing brace, add:
+
+```swift
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Change plan") { changingPlan = true }
+                }
+            }
+            .sheet(isPresented: $changingPlan) {
+                OnboardingView(changing: app.plan?.profile)
+            }
+```
+
+- [ ] **Step 5: Build**
+
+Run: BUILD
+Expected: success.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add Sources/RunPlan/Onboarding Sources/RunPlan/Plan/PlanView.swift
+git commit -m "Let the plan be changed from the Plan tab"
 ```
 
 ---
@@ -1377,6 +1616,7 @@ git commit -m "Add location service and permission text"
 - [ ] Outdoor sessions start GPS, record fixes (not counting while paused), and stop GPS on finish
 - [ ] A covered distance step advances the engine; splits and pace cues are spoken
 - [ ] The checkpoint carries the tracker, and a resumed outdoor run restores it
+- [ ] Skip forward and back restart a distance step's measurement; fixes trigger a refresh; the checkpoint is written off the main actor
 - [ ] Treadmill sessions are unchanged; BUILD succeeds
 
 **Verify:** BUILD → success
@@ -1482,11 +1722,13 @@ final class WorkoutSessionModel: Identifiable {
 
     func skipForward() {
         engine.skipForward()
+        tracker?.restartStep()
         refresh(forceCheckpoint: true)
     }
 
     func skipBack() {
         engine.skipBack()
+        tracker?.restartStep()
         refresh(forceCheckpoint: true)
     }
 
@@ -1508,8 +1750,11 @@ final class WorkoutSessionModel: Identifiable {
         location.start()
     }
 
+    /// Records a fix and refreshes straight away, so splits and distance steps are handled
+    /// promptly even if the screen refresh timer is slowed while the phone is locked.
     private func record(_ sample: LocationSample) {
         tracker?.record(sample, now: Date(), counting: engine.state == .running)
+        refresh()
     }
 
     private func startUITimer() {
@@ -1584,7 +1829,11 @@ final class WorkoutSessionModel: Identifiable {
             checkpoint: engine.checkpoint(now: now),
             outdoor: tracker
         )
-        try? store.save(active, as: Self.checkpointFile)
+        // A long run's route makes this about 1 MB, so encode and write it off the main actor.
+        let store = self.store
+        Task.detached(priority: .utility) {
+            try? store.save(active, as: Self.checkpointFile)
+        }
     }
 
     private func finish(elapsed: TimeInterval) {
@@ -1845,12 +2094,17 @@ In `Sources/RunPlan/Plan/PlanView.swift`:
     @State private var choosingFreeRun = false
 ```
 
-2. Directly after the `.navigationDestination(for: UUID.self) { id in ... }` modifier's closing brace, add:
+2. In the existing `.toolbar { ... }` (added in Task 5a), add this item after the Change plan item:
 
 ```swift
-            .toolbar {
-                Button("Free run") { choosingFreeRun = true }
-            }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Free run") { choosingFreeRun = true }
+                }
+```
+
+3. Directly after the `.sheet(isPresented: $changingPlan) { ... }` modifier's closing brace, add:
+
+```swift
             .startRunFlow(isChoosing: $choosingFreeRun) { FreeRun.workout() }
 ```
 

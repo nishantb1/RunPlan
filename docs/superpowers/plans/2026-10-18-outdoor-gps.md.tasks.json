@@ -37,11 +37,20 @@
     {
       "id": 4,
       "subject": "Task 5: Outdoor tracker",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         3
       ],
       "description": "**Goal:** OutdoorTracker combines tracking into session events and is saved in the crash checkpoint.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/OutdoorEvent.swift\n- RunCore/Sources/RunCore/Tracking/OutdoorTracker.swift\n- RunCore/Sources/RunCore/Models/ActiveWorkout.swift\n- RunCore/Tests/RunCoreTests/OutdoorTrackerTests.swift\n\n**Acceptance Criteria:**\n- [ ] 400 m step: ease-off cues at 35/65/95/125 s, step reached once at 134 s\n- [ ] Mile 1 announced at 536 s; final partial 25.656 m in 9 s\n- [ ] Paused fixes add nothing; signal lost after 10 s\n- [ ] Round-trips inside ActiveWorkout; old checkpoints still load\n\n**Verify:** swift test in RunCore via WSL --filter OutdoorTrackerTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/OutdoorEvent.swift\",\"RunCore/Sources/RunCore/Tracking/OutdoorTracker.swift\",\"RunCore/Sources/RunCore/Models/ActiveWorkout.swift\",\"RunCore/Tests/RunCoreTests/OutdoorTrackerTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter OutdoorTrackerTests\",\"acceptanceCriteria\":[\"400 m step: ease-off cues at 35/65/95/125 s, step reached once at 134 s\",\"Mile 1 announced at 536 s; final partial 25.656 m in 9 s\",\"Paused fixes add nothing; signal lost after 10 s\",\"Round-trips inside ActiveWorkout; old checkpoints still load\"]}\n```"
+    },
+    {
+      "id": "5a",
+      "subject": "Task 5a: Change plan",
+      "status": "pending",
+      "blockedBy": [
+        4
+      ],
+      "description": "**Goal:** From the Plan tab, reopen onboarding filled in with the current answers and replace the plan after a confirmation.\n\n**Files:**\n- Sources/RunPlan/Onboarding/OnboardingModel.swift\n- Sources/RunPlan/Onboarding/OnboardingView.swift\n- Sources/RunPlan/Onboarding/PlanPreviewView.swift\n- Sources/RunPlan/Plan/PlanView.swift\n\n**Acceptance Criteria:**\n- [ ] Plan tab has Change plan opening prefilled onboarding\n- [ ] Past start date moves to today\n- [ ] Cancel closes without changes\n- [ ] Save confirms, replaces the plan and closes; runs stay\n- [ ] First-launch onboarding unchanged; BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Onboarding/OnboardingModel.swift\",\"Sources/RunPlan/Onboarding/OnboardingView.swift\",\"Sources/RunPlan/Onboarding/PlanPreviewView.swift\",\"Sources/RunPlan/Plan/PlanView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Plan tab has Change plan opening prefilled onboarding\",\"Past start date moves to today\",\"Cancel closes without changes\",\"Save confirms, replaces the plan and closes; runs stay\",\"First-launch onboarding unchanged; BUILD succeeds\"]}\n```"
     },
     {
       "id": 5,
@@ -107,5 +116,5 @@
       "description": "**Goal:** Record stage 4 decisions in the spec, add the outdoor checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes auto-pause moved to stage 5 and the GPS rules\n- [ ] README has outdoor checklist\n- [ ] Full TEST and BUILD pass\n- [ ] Installed and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes auto-pause moved to stage 5 and the GPS rules\",\"README has outdoor checklist\",\"Full TEST and BUILD pass\",\"Installed and checklist handed to the user\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-18T20:37:08.000Z"
+  "lastUpdated": "2026-10-18T22:05:37.000Z"
 }

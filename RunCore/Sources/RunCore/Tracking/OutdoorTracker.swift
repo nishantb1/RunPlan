@@ -26,6 +26,7 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     /// not cleared when fixes stop, so check `hasSignal(now:)` before showing it.
     public var currentPace: Int? { smoother.secondsPerMile }
 
+    /// True while a fix that passed the filter arrived within the last 10 s.
     public func hasSignal(now: Date) -> Bool {
         guard let lastFixAt else { return false }
         return now.timeIntervalSince(lastFixAt) <= Self.signalTimeoutSeconds
@@ -79,6 +80,12 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
             events.append(.paceCue(cue))
         }
         return events
+    }
+
+    /// Call when the runner skips or restarts a step by hand. The next `events` call then measures
+    /// the step's distance afresh; skip back on the first step keeps the same step index.
+    public mutating func restartStep() {
+        stepIndex = nil
     }
 
     /// Distance left in the current step, or nil when the step is not measured by distance.

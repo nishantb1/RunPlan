@@ -71,6 +71,27 @@ final class OutdoorTrackerTests: XCTestCase {
         XCTAssertFalse(tracker.hasSignal(now: at(120)))
     }
 
+    func testRestartedStepMeasuresDistanceAfresh() throws {
+        let engine = WorkoutEngine(planSteps: [
+            Step(kind: .run, measure: .distance(meters: 400)),
+            Step(kind: .cooldown, measure: .time(seconds: 300)),
+        ])
+        engine.start(now: trackStart)
+        var tracker = OutdoorTracker()
+        for second in 0...100 {
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+            _ = tracker.events(for: try XCTUnwrap(engine.snapshot(now: at(second))), now: at(second))
+        }
+
+        // Skip back on the first step restarts it with the same step index.
+        engine.skipBack(now: at(100))
+        tracker.restartStep()
+        let snapshot = try XCTUnwrap(engine.snapshot(now: at(100)))
+        XCTAssertEqual(snapshot.stepIndex, 0)
+        _ = tracker.events(for: snapshot, now: at(100))
+        XCTAssertEqual(try XCTUnwrap(tracker.stepMetersRemaining(for: snapshot)), 400, accuracy: 1e-6)
+    }
+
     func testPausedFixesAddNothing() {
         var tracker = OutdoorTracker()
         tracker.record(fix(at: 0, north: 0), now: at(0), counting: true)
