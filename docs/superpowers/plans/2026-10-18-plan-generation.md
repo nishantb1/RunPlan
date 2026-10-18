@@ -855,7 +855,8 @@ import Foundation
 /// Integer scaling with halves rounded up, so plan lengths are exact and identical on every
 /// platform.
 enum Scaling {
-    /// `value × numerator / denominator`, rounded to the nearest whole number.
+    /// `value × numerator / denominator`, rounded to the nearest whole number. Inputs must be
+    /// non-negative and `denominator` positive.
     static func round(_ value: Int, times numerator: Int, over denominator: Int) -> Int {
         (2 * value * numerator + denominator) / (2 * denominator)
     }
@@ -902,8 +903,9 @@ struct WalkRunLevel: Equatable, Sendable {
 import Foundation
 
 /// Builds each kind of planned workout. `level` is the week's easy-run length in minutes. A
-/// tempo session and an intervals session at the same level last exactly as long, so
-/// alternating them leaves weekly volume unchanged.
+/// tempo session and an intervals session at the same level last exactly as long for levels
+/// 15 to 50 (the generator's range), so alternating them leaves weekly volume unchanged. Below
+/// 15 the minimum warm-up makes intervals slightly longer.
 struct WorkoutBuilder {
     static let walkWarmupSeconds = 300
     static let walkCooldownSeconds = 300

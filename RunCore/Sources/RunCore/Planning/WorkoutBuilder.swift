@@ -1,8 +1,9 @@
 import Foundation
 
 /// Builds each kind of planned workout. `level` is the week's easy-run length in minutes. A
-/// tempo session and an intervals session at the same level last exactly as long, so
-/// alternating them leaves weekly volume unchanged.
+/// tempo session and an intervals session at the same level last exactly as long for levels
+/// 15 to 50 (the generator's range), so alternating them leaves weekly volume unchanged. Below
+/// 15 the minimum warm-up makes intervals slightly longer.
 struct WorkoutBuilder {
     static let walkWarmupSeconds = 300
     static let walkCooldownSeconds = 300
