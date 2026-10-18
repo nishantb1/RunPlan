@@ -56,6 +56,31 @@ final class OnboardingModel {
     var planWeeks = 8
     var startDate = Calendar.current.startOfDay(for: Date())
 
+    /// A blank draft for first launch, or one filled in from the current plan's answers so they
+    /// can be changed. A start date in the past moves to today.
+    init(profile: Profile? = nil) {
+        guard let profile else { return }
+        distance = profile.goal.distance
+        hasGoalTime = profile.goal.targetSeconds != nil
+        goalSeconds = profile.goal.targetSeconds ?? Self.defaultSeconds(for: profile.goal.distance)
+        switch profile.fitness {
+        case .newRunner:
+            fitnessChoice = .newRunner
+        case .runsFiveMinutes:
+            fitnessChoice = .runsFiveMinutes
+        case .runsTwentyMinutes:
+            fitnessChoice = .runsTwentyMinutes
+        case .recentRace(let distance, let seconds):
+            fitnessChoice = .recentRace
+            raceDistance = distance
+            raceSeconds = seconds
+        }
+        runDays = Set(profile.runDays)
+        planWeeks = profile.planWeeks
+        let today = Calendar.current.startOfDay(for: Date())
+        startDate = max(Calendar.current.startOfDay(for: profile.startDate), today)
+    }
+
     var profile: Profile {
         Profile(
             goal: Goal(distance: distance, targetSeconds: hasGoalTime ? goalSeconds : nil),

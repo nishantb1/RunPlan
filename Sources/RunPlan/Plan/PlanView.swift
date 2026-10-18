@@ -4,6 +4,7 @@ import RunCore
 /// The training plan: the next workout, then every week with its workouts.
 struct PlanView: View {
     @Environment(AppModel.self) private var app
+    @State private var changingPlan = false
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,14 @@ struct PlanView: View {
             .navigationTitle("Plan")
             .navigationDestination(for: UUID.self) { id in
                 WorkoutDetailView(workoutID: id)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Change plan") { changingPlan = true }
+                }
+            }
+            .sheet(isPresented: $changingPlan) {
+                OnboardingView(changing: app.plan?.profile)
             }
         }
     }

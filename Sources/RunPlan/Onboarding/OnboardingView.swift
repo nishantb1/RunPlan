@@ -1,10 +1,18 @@
 import SwiftUI
 import RunCore
 
-/// First launch: goal, current fitness and schedule, then a preview of the plan before it is
-/// saved.
+/// Goal, current fitness and schedule, then a preview of the plan before it is saved. Shown on
+/// first launch, and from the Plan tab to change the current plan.
 struct OnboardingView: View {
-    @State private var model = OnboardingModel()
+    @Environment(\.dismiss) private var dismiss
+    @State private var model: OnboardingModel
+    /// True when changing an existing plan, rather than on first launch.
+    private let isChangingPlan: Bool
+
+    init(changing profile: Profile? = nil) {
+        _model = State(initialValue: OnboardingModel(profile: profile))
+        isChangingPlan = profile != nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -14,6 +22,10 @@ struct OnboardingView: View {
                     if model.page != .goal {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Back") { model.back() }
+                        }
+                    } else if isChangingPlan {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { dismiss() }
                         }
                     }
                     if model.page != .preview {
@@ -31,7 +43,7 @@ struct OnboardingView: View {
         case .goal: goalForm
         case .fitness: fitnessForm
         case .schedule: scheduleForm
-        case .preview: PlanPreviewView(model: model)
+        case .preview: PlanPreviewView(model: model, isReplacing: isChangingPlan)
         }
     }
 

@@ -5,7 +5,12 @@ import RunCore
 /// looks out of reach.
 struct PlanPreviewView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dismiss) private var dismiss
     let model: OnboardingModel
+    /// True when this plan replaces an existing one, which needs a confirmation.
+    let isReplacing: Bool
+
+    @State private var confirmingReplace = false
 
     var body: some View {
         let profile = model.profile
@@ -52,12 +57,27 @@ struct PlanPreviewView: View {
         }
         .safeAreaInset(edge: .bottom) {
             Button {
-                app.createPlan(from: model.profile)
+                if isReplacing {
+                    confirmingReplace = true
+                } else {
+                    app.createPlan(from: model.profile)
+                }
             } label: {
-                Text("Save plan").font(.title3.bold()).frame(maxWidth: .infinity).padding(.vertical, 8)
+                Text(isReplacing ? "Replace plan" : "Save plan")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
             }
             .buttonStyle(.borderedProminent)
             .padding()
+        }
+        .confirmationDialog("Replace your plan?", isPresented: $confirmingReplace, titleVisibility: .visible) {
+            Button("Replace plan", role: .destructive) {
+                app.createPlan(from: model.profile)
+                dismiss()
+            }
+        } message: {
+            Text("The new plan starts fresh. Runs you have already done stay in Runs.")
         }
     }
 }
