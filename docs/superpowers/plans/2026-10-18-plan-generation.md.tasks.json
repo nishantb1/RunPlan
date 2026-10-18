@@ -1,0 +1,93 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-18-plan-generation.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 1: Profile and plan models",
+      "status": "pending",
+      "description": "**Goal:** Codable value types for the onboarding answers and the plan.\n\n**Files:**\n- RunCore/Sources/RunCore/Models/RaceDistance.swift\n- RunCore/Sources/RunCore/Models/Goal.swift\n- RunCore/Sources/RunCore/Models/Fitness.swift\n- RunCore/Sources/RunCore/Models/Weekday.swift\n- RunCore/Sources/RunCore/Models/Profile.swift\n- RunCore/Sources/RunCore/Models/WeekKind.swift\n- RunCore/Sources/RunCore/Models/Week.swift\n- RunCore/Sources/RunCore/Models/Plan.swift\n- RunCore/Tests/RunCoreTests/PlanTestSupport.swift\n- RunCore/Tests/RunCoreTests/PlanModelTests.swift\n\n**Acceptance Criteria:**\n- [ ] Profiles with a race result and with a just-finish goal round-trip through JSON\n- [ ] Profile keeps runDays sorted Monday first and derives daysPerWeek\n- [ ] Weekday matches the calendar and allCases runs Monday to Sunday\n- [ ] A Plan round-trips through JSON\n\n**Verify:** swift test in RunCore via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Models/RaceDistance.swift\",\"RunCore/Sources/RunCore/Models/Goal.swift\",\"RunCore/Sources/RunCore/Models/Fitness.swift\",\"RunCore/Sources/RunCore/Models/Weekday.swift\",\"RunCore/Sources/RunCore/Models/Profile.swift\",\"RunCore/Sources/RunCore/Models/WeekKind.swift\",\"RunCore/Sources/RunCore/Models/Week.swift\",\"RunCore/Sources/RunCore/Models/Plan.swift\",\"RunCore/Tests/RunCoreTests/PlanTestSupport.swift\",\"RunCore/Tests/RunCoreTests/PlanModelTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL\",\"acceptanceCriteria\":[\"Profiles with a race result and with a just-finish goal round-trip through JSON\",\"Profile keeps runDays sorted Monday first and derives daysPerWeek\",\"Weekday matches the calendar and allCases runs Monday to Sunday\",\"A Plan round-trips through JSON\"]}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 2: Pace calculator and goal check",
+      "status": "pending",
+      "blockedBy": [
+        0
+      ],
+      "description": "**Goal:** PaceCalculator derives training paces and judges whether a goal time is plausible.\n\n**Files:**\n- RunCore/Sources/RunCore/Planning/TrainingPaces.swift\n- RunCore/Sources/RunCore/Planning/GoalAssessment.swift\n- RunCore/Sources/RunCore/Planning/PaceCalculator.swift\n- RunCore/Tests/RunCoreTests/PaceCalculatorTests.swift\n\n**Acceptance Criteria:**\n- [ ] 25:00 5K goal gives 573/508/483/483\n- [ ] 50:00 10K goal gives 553/488/463/483\n- [ ] Just finish with a 30:00 5K race for 10K gives 669/604/579/604\n- [ ] Just finish with no race uses defaults\n- [ ] Goal check: reachable, 14 weeks, and no suggestion cases\n\n**Verify:** swift test in RunCore via WSL --filter PaceCalculatorTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Planning/TrainingPaces.swift\",\"RunCore/Sources/RunCore/Planning/GoalAssessment.swift\",\"RunCore/Sources/RunCore/Planning/PaceCalculator.swift\",\"RunCore/Tests/RunCoreTests/PaceCalculatorTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter PaceCalculatorTests\",\"acceptanceCriteria\":[\"25:00 5K goal gives 573/508/483/483\",\"50:00 10K goal gives 553/488/463/483\",\"Just finish with a 30:00 5K race for 10K gives 669/604/579/604\",\"Just finish with no race uses defaults\",\"Goal check: reachable, 14 weeks, and no suggestion cases\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 3: Workout builder and walk-run ladder",
+      "status": "pending",
+      "blockedBy": [
+        1
+      ],
+      "description": "**Goal:** One function per planned workout kind plus the walk-run ladder, with intervals and tempo of equal length.\n\n**Files:**\n- RunCore/Sources/RunCore/Planning/Scaling.swift\n- RunCore/Sources/RunCore/Planning/WalkRunLevel.swift\n- RunCore/Sources/RunCore/Planning/WorkoutBuilder.swift\n- RunCore/Tests/RunCoreTests/WorkoutBuilderTests.swift\n\n**Acceptance Criteria:**\n- [ ] Each workout kind produces the exact steps, paces and title in the tests\n- [ ] Intervals last exactly as long as tempo at levels 15 to 50 for both distances\n- [ ] Walk-run running time never drops between rungs\n- [ ] Walk-run sessions have no pace targets\n\n**Verify:** swift test in RunCore via WSL --filter WorkoutBuilderTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Planning/Scaling.swift\",\"RunCore/Sources/RunCore/Planning/WalkRunLevel.swift\",\"RunCore/Sources/RunCore/Planning/WorkoutBuilder.swift\",\"RunCore/Tests/RunCoreTests/WorkoutBuilderTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter WorkoutBuilderTests\",\"acceptanceCriteria\":[\"Each workout kind produces the exact steps, paces and title in the tests\",\"Intervals last exactly as long as tempo at levels 15 to 50 for both distances\",\"Walk-run running time never drops between rungs\",\"Walk-run sessions have no pace targets\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 4: Plan generator",
+      "status": "pending",
+      "blockedBy": [
+        2
+      ],
+      "description": "**Goal:** PlanGenerator.generate turns a profile into dated weeks of workouts.\n\n**Files:**\n- RunCore/Sources/RunCore/Planning/PlanGenerator.swift\n- RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift\n\n**Acceptance Criteria:**\n- [ ] Worked examples match exactly\n- [ ] Every goal x fitness x 2-5 days x 6-16 weeks gives a valid plan ending in one time trial\n- [ ] Build weeks grow at most 10% plus 60 s per workout; cutbacks at most 80% plus 60 s per workout\n- [ ] Same profile gives the same plan apart from IDs\n\n**Verify:** swift test in RunCore via WSL --filter PlanGeneratorTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Planning/PlanGenerator.swift\",\"RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter PlanGeneratorTests\",\"acceptanceCriteria\":[\"Worked examples match exactly\",\"Every goal x fitness x 2-5 days x 6-16 weeks gives a valid plan ending in one time trial\",\"Build weeks grow at most 10% plus 60 s per workout; cutbacks at most 80% plus 60 s per workout\",\"Same profile gives the same plan apart from IDs\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 5: Plan queries, completion, edits and storage",
+      "status": "pending",
+      "blockedBy": [
+        3
+      ],
+      "description": "**Goal:** Plan finds the next workout, marks completion and replaces edits; PlanStore saves plan.json.\n\n**Files:**\n- RunCore/Sources/RunCore/Models/Plan.swift\n- RunCore/Sources/RunCore/Storage/PlanStore.swift\n- RunCore/Tests/RunCoreTests/PlanTests.swift\n- RunCore/Tests/RunCoreTests/PlanStoreTests.swift\n\n**Acceptance Criteria:**\n- [ ] nextWorkout skips missed and completed workouts and is nil after the plan\n- [ ] markCompleted sets recordID; unknown IDs change nothing\n- [ ] update replaces by ID and keeps the week in date order\n- [ ] Saved plan loads back equal; missing loads nil\n\n**Verify:** swift test in RunCore via WSL --filter Plan\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Models/Plan.swift\",\"RunCore/Sources/RunCore/Storage/PlanStore.swift\",\"RunCore/Tests/RunCoreTests/PlanTests.swift\",\"RunCore/Tests/RunCoreTests/PlanStoreTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter Plan\",\"acceptanceCriteria\":[\"nextWorkout skips missed and completed workouts and is nil after the plan\",\"markCompleted sets recordID; unknown IDs change nothing\",\"update replaces by ID and keeps the week in date order\",\"Saved plan loads back equal; missing loads nil\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 6: Plan state in the app model",
+      "status": "pending",
+      "blockedBy": [
+        4
+      ],
+      "description": "**Goal:** AppModel loads, creates and saves the plan, saves edits and marks workouts completed.\n\n**Files:**\n- Sources/RunPlan/App/AppModel.swift\n\n**Acceptance Criteria:**\n- [ ] plan loaded at launch\n- [ ] createPlan generates and saves\n- [ ] update saves an edited workout\n- [ ] save marks the run's workout completed\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/App/AppModel.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"plan loaded at launch\",\"createPlan generates and saves\",\"update saves an edited workout\",\"save marks the run's workout completed\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 7: Onboarding",
+      "status": "pending",
+      "blockedBy": [
+        5
+      ],
+      "description": "**Goal:** First launch asks for goal, fitness and schedule, previews the plan with paces and goal warning, and saves it.\n\n**Files:**\n- Sources/RunPlan/Onboarding/OnboardingModel.swift\n- Sources/RunPlan/Onboarding/OnboardingView.swift\n- Sources/RunPlan/Onboarding/DurationPicker.swift\n- Sources/RunPlan/Onboarding/PlanPreviewView.swift\n- Sources/RunPlan/App/RootView.swift\n\n**Acceptance Criteria:**\n- [ ] Root shows onboarding with no plan, home once saved\n- [ ] Next disabled unless 2 to 5 run days\n- [ ] Ambitious goal warning offers suggested length and train to finish\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Onboarding/OnboardingModel.swift\",\"Sources/RunPlan/Onboarding/OnboardingView.swift\",\"Sources/RunPlan/Onboarding/DurationPicker.swift\",\"Sources/RunPlan/Onboarding/PlanPreviewView.swift\",\"Sources/RunPlan/App/RootView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Root shows onboarding with no plan, home once saved\",\"Next disabled unless 2 to 5 run days\",\"Ambitious goal warning offers suggested length and train to finish\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 8: Plan and Runs tabs",
+      "status": "pending",
+      "blockedBy": [
+        6
+      ],
+      "description": "**Goal:** Plan tab with next workout and weeks; Runs tab with history; home screen and sample workout removed.\n\n**Files:**\n- Sources/RunPlan/Plan/PlanView.swift\n- Sources/RunPlan/Plan/WorkoutRow.swift\n- Sources/RunPlan/Runs/RunsView.swift\n- Sources/RunPlan/Workout/WorkoutDetailView.swift\n- Sources/RunPlan/App/RootView.swift\n- Sources/RunPlan/App/AppModel.swift\n- Sources/RunPlan/Home/HomeView.swift\n\n**Acceptance Criteria:**\n- [ ] Plan tab heads with Today/Next or Plan complete\n- [ ] Week sections show kind and done count\n- [ ] Workout detail looked up by ID\n- [ ] Runs tab lists saved runs\n- [ ] HomeView and sample workout gone; BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Plan/PlanView.swift\",\"Sources/RunPlan/Plan/WorkoutRow.swift\",\"Sources/RunPlan/Runs/RunsView.swift\",\"Sources/RunPlan/Workout/WorkoutDetailView.swift\",\"Sources/RunPlan/App/RootView.swift\",\"Sources/RunPlan/App/AppModel.swift\",\"Sources/RunPlan/Home/HomeView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Plan tab heads with Today/Next or Plan complete\",\"Week sections show kind and done count\",\"Workout detail looked up by ID\",\"Runs tab lists saved runs\",\"HomeView and sample workout gone; BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 9: Workout editing",
+      "status": "pending",
+      "blockedBy": [
+        7
+      ],
+      "description": "**Goal:** Edit a planned workout's title, date and steps, saved to the plan.\n\n**Files:**\n- RunCore/Sources/RunCore/Models/Workout+RepeatGroups.swift\n- RunCore/Tests/RunCoreTests/WorkoutRepeatGroupTests.swift\n- Sources/RunPlan/Plan/WorkoutEditView.swift\n- Sources/RunPlan/Plan/StepEditor.swift\n- Sources/RunPlan/Workout/WorkoutDetailView.swift\n\n**Acceptance Criteria:**\n- [ ] Workout reads and sets repeat counts per group\n- [ ] Detail has Edit; changes apply only on Save\n- [ ] Repeat count edited once per group\n- [ ] Save disabled with no steps\n- [ ] TEST and BUILD succeed\n\n**Verify:** swift test in RunCore via WSL --filter WorkoutRepeatGroupTests and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Models/Workout+RepeatGroups.swift\",\"RunCore/Tests/RunCoreTests/WorkoutRepeatGroupTests.swift\",\"Sources/RunPlan/Plan/WorkoutEditView.swift\",\"Sources/RunPlan/Plan/StepEditor.swift\",\"Sources/RunPlan/Workout/WorkoutDetailView.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter WorkoutRepeatGroupTests and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Workout reads and sets repeat counts per group\",\"Detail has Edit; changes apply only on Save\",\"Repeat count edited once per group\",\"Save disabled with no steps\",\"TEST and BUILD succeed\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 10: Docs, final verification and on-device check",
+      "status": "pending",
+      "blockedBy": [
+        8
+      ],
+      "description": "**Goal:** Record stage 3 deviations in the spec, add the README checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes profile inside plan.json, derived daysPerWeek, omitted units\n- [ ] README has stage 3 checklist\n- [ ] Full TEST passes and BUILD succeeds\n- [ ] Installed on the phone and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-plan-generation.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes profile inside plan.json, derived daysPerWeek, omitted units\",\"README has stage 3 checklist\",\"Full TEST passes and BUILD succeeds\",\"Installed on the phone and checklist handed to the user\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-10-18T18:39:42.000Z"
+}
