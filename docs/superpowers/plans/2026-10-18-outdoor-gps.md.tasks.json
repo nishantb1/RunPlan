@@ -1,0 +1,111 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-18-outdoor-gps.md",
+  "tasks": [
+    {
+      "id": 0,
+      "subject": "Task 1: GPS samples, filter and distance",
+      "status": "pending",
+      "description": "**Goal:** A plain LocationSample, the accuracy-and-age filter, and haversine distance.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/LocationSample.swift\n- RunCore/Sources/RunCore/Tracking/SampleFilter.swift\n- RunCore/Sources/RunCore/Tracking/Geo.swift\n- RunCore/Tests/RunCoreTests/TrackingTestSupport.swift\n- RunCore/Tests/RunCoreTests/GeoTests.swift\n\n**Acceptance Criteria:**\n- [ ] 0.001 deg latitude is 111.195 m; 0.001 deg longitude at 51.5N is 69.220 m\n- [ ] Filter accepts accuracy 0-20 m and age up to 5 s only\n- [ ] A sample converts to a RoutePoint\n\n**Verify:** swift test in RunCore via WSL --filter GeoTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/LocationSample.swift\",\"RunCore/Sources/RunCore/Tracking/SampleFilter.swift\",\"RunCore/Sources/RunCore/Tracking/Geo.swift\",\"RunCore/Tests/RunCoreTests/TrackingTestSupport.swift\",\"RunCore/Tests/RunCoreTests/GeoTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter GeoTests\",\"acceptanceCriteria\":[\"0.001 deg latitude is 111.195 m; 0.001 deg longitude at 51.5N is 69.220 m\",\"Filter accepts accuracy 0-20 m and age up to 5 s only\",\"A sample converts to a RoutePoint\"]}\n```"
+    },
+    {
+      "id": 1,
+      "subject": "Task 2: Distance accumulator",
+      "status": "pending",
+      "blockedBy": [
+        0
+      ],
+      "description": "**Goal:** DistanceAccumulator sums distance and builds the route, ignoring GPS jumps and movement while paused.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/DistanceAccumulator.swift\n- RunCore/Tests/RunCoreTests/DistanceAccumulatorTests.swift\n\n**Acceptance Criteria:**\n- [ ] Eleven fixes 3 m apart sum to 30 m with 11 route points\n- [ ] Fixes implying over 10 m/s are ignored\n- [ ] Paused fixes move the reference only\n- [ ] Fixes with no elapsed time are ignored\n\n**Verify:** swift test in RunCore via WSL --filter DistanceAccumulatorTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/DistanceAccumulator.swift\",\"RunCore/Tests/RunCoreTests/DistanceAccumulatorTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter DistanceAccumulatorTests\",\"acceptanceCriteria\":[\"Eleven fixes 3 m apart sum to 30 m with 11 route points\",\"Fixes implying over 10 m/s are ignored\",\"Paused fixes move the reference only\",\"Fixes with no elapsed time are ignored\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 3: Pace window and mile splits",
+      "status": "pending",
+      "blockedBy": [
+        1
+      ],
+      "description": "**Goal:** PaceSmoother reports pace over the last 15 s; SplitTracker times each mile with interpolation.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/PaceSmoother.swift\n- RunCore/Sources/RunCore/Tracking/SplitTracker.swift\n- RunCore/Tests/RunCoreTests/PaceSmootherTests.swift\n- RunCore/Tests/RunCoreTests/SplitTrackerTests.swift\n\n**Acceptance Criteria:**\n- [ ] 3 m/s gives 536 s/mi; window shows only the last 15 s (402)\n- [ ] No pace standing still, under 5 s, or after reset\n- [ ] Splits 502, 474 and a 24 s partial of 81.312 m\n- [ ] Two miles in one update give 488 and 488; partial under 16 m dropped\n\n**Verify:** swift test in RunCore via WSL --filter PaceSmootherTests and --filter SplitTrackerTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/PaceSmoother.swift\",\"RunCore/Sources/RunCore/Tracking/SplitTracker.swift\",\"RunCore/Tests/RunCoreTests/PaceSmootherTests.swift\",\"RunCore/Tests/RunCoreTests/SplitTrackerTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter PaceSmootherTests and --filter SplitTrackerTests\",\"acceptanceCriteria\":[\"3 m/s gives 536 s/mi; window shows only the last 15 s (402)\",\"No pace standing still, under 5 s, or after reset\",\"Splits 502, 474 and a 24 s partial of 81.312 m\",\"Two miles in one update give 488 and 488; partial under 16 m dropped\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 4: Pace cues and outdoor cue wording",
+      "status": "pending",
+      "blockedBy": [
+        2
+      ],
+      "description": "**Goal:** PaceCueMonitor decides when to cue pace; CueText words cues and mile splits.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/PaceCue.swift\n- RunCore/Sources/RunCore/Tracking/PaceCueMonitor.swift\n- RunCore/Sources/RunCore/Cues/CueText.swift\n- RunCore/Tests/RunCoreTests/PaceCueTests.swift\n\n**Acceptance Criteria:**\n- [ ] Cue after 30 s more than 15 s/mi off, repeating every 30 s\n- [ ] On pace, direction change, missing data or reset restarts the timer\n- [ ] Split and cue wording\n\n**Verify:** swift test in RunCore via WSL --filter PaceCueTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/PaceCue.swift\",\"RunCore/Sources/RunCore/Tracking/PaceCueMonitor.swift\",\"RunCore/Sources/RunCore/Cues/CueText.swift\",\"RunCore/Tests/RunCoreTests/PaceCueTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter PaceCueTests\",\"acceptanceCriteria\":[\"Cue after 30 s more than 15 s/mi off, repeating every 30 s\",\"On pace, direction change, missing data or reset restarts the timer\",\"Split and cue wording\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 5: Outdoor tracker",
+      "status": "pending",
+      "blockedBy": [
+        3
+      ],
+      "description": "**Goal:** OutdoorTracker combines tracking into session events and is saved in the crash checkpoint.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/OutdoorEvent.swift\n- RunCore/Sources/RunCore/Tracking/OutdoorTracker.swift\n- RunCore/Sources/RunCore/Models/ActiveWorkout.swift\n- RunCore/Tests/RunCoreTests/OutdoorTrackerTests.swift\n\n**Acceptance Criteria:**\n- [ ] 400 m step: ease-off cues at 35/65/95/125 s, step reached once at 134 s\n- [ ] Mile 1 announced at 536 s; final partial 25.656 m in 9 s\n- [ ] Paused fixes add nothing; signal lost after 10 s\n- [ ] Round-trips inside ActiveWorkout; old checkpoints still load\n\n**Verify:** swift test in RunCore via WSL --filter OutdoorTrackerTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/OutdoorEvent.swift\",\"RunCore/Sources/RunCore/Tracking/OutdoorTracker.swift\",\"RunCore/Sources/RunCore/Models/ActiveWorkout.swift\",\"RunCore/Tests/RunCoreTests/OutdoorTrackerTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter OutdoorTrackerTests\",\"acceptanceCriteria\":[\"400 m step: ease-off cues at 35/65/95/125 s, step reached once at 134 s\",\"Mile 1 announced at 536 s; final partial 25.656 m in 9 s\",\"Paused fixes add nothing; signal lost after 10 s\",\"Round-trips inside ActiveWorkout; old checkpoints still load\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 6: Open steps and free runs",
+      "status": "pending",
+      "blockedBy": [
+        4
+      ],
+      "description": "**Goal:** StepMeasure.open lasts until the runner ends it; FreeRun.workout builds a free run from one.\n\n**Files:**\n- RunCore/Sources/RunCore/Models/StepMeasure.swift\n- RunCore/Sources/RunCore/Models/FreeRun.swift\n- RunCore/Sources/RunCore/Engine/StepExpander.swift\n- RunCore/Tests/RunCoreTests/FreeRunTests.swift\n- RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift\n- Sources/RunPlan/Workout/WorkoutDetailView.swift\n- Sources/RunPlan/Plan/StepEditor.swift\n\n**Acceptance Criteria:**\n- [ ] Free run is one open run step\n- [ ] Open step runs until ended\n- [ ] Open measure round-trips and is announced as Run.\n- [ ] All StepMeasure switches handle .open; TEST and BUILD succeed\n\n**Verify:** swift test in RunCore via WSL --filter FreeRunTests, full TEST and BUILD\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Models/StepMeasure.swift\",\"RunCore/Sources/RunCore/Models/FreeRun.swift\",\"RunCore/Sources/RunCore/Engine/StepExpander.swift\",\"RunCore/Tests/RunCoreTests/FreeRunTests.swift\",\"RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift\",\"Sources/RunPlan/Workout/WorkoutDetailView.swift\",\"Sources/RunPlan/Plan/StepEditor.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter FreeRunTests, full TEST and BUILD\",\"acceptanceCriteria\":[\"Free run is one open run step\",\"Open step runs until ended\",\"Open measure round-trips and is announced as Run.\",\"All StepMeasure switches handle .open; TEST and BUILD succeed\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 7: Location service and permissions",
+      "status": "pending",
+      "blockedBy": [
+        5
+      ],
+      "description": "**Goal:** LocationService wraps CoreLocation; Info.plist declares background location and permission text.\n\n**Files:**\n- Sources/RunPlan/Services/LocationService.swift\n- Info.plist\n\n**Acceptance Criteria:**\n- [ ] Info.plist has location background mode and both usage descriptions\n- [ ] LocationService publishes authorization and newest fix and starts/stops updates\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Services/LocationService.swift\",\"Info.plist\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Info.plist has location background mode and both usage descriptions\",\"LocationService publishes authorization and newest fix and starts/stops updates\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 8: Outdoor sessions",
+      "status": "pending",
+      "blockedBy": [
+        6
+      ],
+      "description": "**Goal:** WorkoutSessionModel feeds GPS to OutdoorTracker, ends distance steps, speaks splits and pace cues, checkpoints and resumes.\n\n**Files:**\n- Sources/RunPlan/Workout/WorkoutSessionModel.swift\n- Sources/RunPlan/App/AppModel.swift\n\n**Acceptance Criteria:**\n- [ ] Outdoor sessions start and stop GPS and record fixes\n- [ ] Covered distance steps advance; splits and pace cues spoken\n- [ ] Checkpoint carries the tracker; resume restores it\n- [ ] Treadmill unchanged; BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Workout/WorkoutSessionModel.swift\",\"Sources/RunPlan/App/AppModel.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Outdoor sessions start and stop GPS and record fixes\",\"Covered distance steps advance; splits and pace cues spoken\",\"Checkpoint carries the tracker; resume restores it\",\"Treadmill unchanged; BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 9: Outdoor start flow and free run",
+      "status": "pending",
+      "blockedBy": [
+        7
+      ],
+      "description": "**Goal:** Start offers Treadmill or Outdoor with a GPS sheet; Plan screen gets Free run.\n\n**Files:**\n- Sources/RunPlan/Workout/OutdoorStartView.swift\n- Sources/RunPlan/Workout/StartRunFlow.swift\n- Sources/RunPlan/Workout/WorkoutDetailView.swift\n- Sources/RunPlan/Plan/PlanView.swift\n\n**Acceptance Criteria:**\n- [ ] Outdoor sheet requests permission, starts GPS, enables Start on a good fix\n- [ ] Denied location explains, links to Settings, offers treadmill\n- [ ] Session starts after the sheet closes; Cancel stops GPS\n- [ ] Plan toolbar has Free run\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Workout/OutdoorStartView.swift\",\"Sources/RunPlan/Workout/StartRunFlow.swift\",\"Sources/RunPlan/Workout/WorkoutDetailView.swift\",\"Sources/RunPlan/Plan/PlanView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Outdoor sheet requests permission, starts GPS, enables Start on a good fix\",\"Denied location explains, links to Settings, offers treadmill\",\"Session starts after the sheet closes; Cancel stops GPS\",\"Plan toolbar has Free run\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 10: Outdoor live screen",
+      "status": "pending",
+      "blockedBy": [
+        8
+      ],
+      "description": "**Goal:** Live screen adds distance, pace, distance left and a GPS warning; free runs show elapsed time.\n\n**Files:**\n- Sources/RunPlan/Workout/LiveWorkoutView.swift\n\n**Acceptance Criteria:**\n- [ ] Outdoors shows miles, pace and a GPS lost banner\n- [ ] Distance step shows distance left\n- [ ] Free run shows elapsed instead of progress\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Workout/LiveWorkoutView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Outdoors shows miles, pace and a GPS lost banner\",\"Distance step shows distance left\",\"Free run shows elapsed instead of progress\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 10,
+      "subject": "Task 11: Outdoor summary",
+      "status": "pending",
+      "blockedBy": [
+        9
+      ],
+      "description": "**Goal:** Summary shows measured distance, splits and route map; free runs saved without workout ID.\n\n**Files:**\n- Sources/RunPlan/Workout/SummaryView.swift\n\n**Acceptance Criteria:**\n- [ ] Outdoor distance, splits and route map\n- [ ] Treadmill unchanged\n- [ ] Record carries splits and route; workoutID nil unless in plan\n- [ ] BUILD succeeds\n\n**Verify:** xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"Sources/RunPlan/Workout/SummaryView.swift\"],\"verifyCommand\":\"xtool dev build via WSL\",\"acceptanceCriteria\":[\"Outdoor distance, splits and route map\",\"Treadmill unchanged\",\"Record carries splits and route; workoutID nil unless in plan\",\"BUILD succeeds\"]}\n```"
+    },
+    {
+      "id": 11,
+      "subject": "Task 12: Docs, final verification and outdoor check",
+      "status": "pending",
+      "blockedBy": [
+        10
+      ],
+      "description": "**Goal:** Record stage 4 decisions in the spec, add the outdoor checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes auto-pause moved to stage 5 and the GPS rules\n- [ ] README has outdoor checklist\n- [ ] Full TEST and BUILD pass\n- [ ] Installed and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes auto-pause moved to stage 5 and the GPS rules\",\"README has outdoor checklist\",\"Full TEST and BUILD pass\",\"Installed and checklist handed to the user\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-10-18T20:20:54.000Z"
+}
