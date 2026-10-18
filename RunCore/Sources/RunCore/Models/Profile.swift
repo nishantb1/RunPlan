@@ -1,0 +1,24 @@
+import Foundation
+
+/// The onboarding answers a plan is generated from. Distances are in miles throughout v1.
+public struct Profile: Codable, Equatable, Sendable {
+    public static let daysPerWeekRange = 2...5
+    public static let planWeeksRange = 6...16
+
+    public var goal: Goal
+    public var fitness: Fitness
+    /// Kept sorted Monday first.
+    public var runDays: [Weekday]
+    public var planWeeks: Int
+    public var startDate: Date
+
+    public var daysPerWeek: Int { runDays.count }
+
+    public init(goal: Goal, fitness: Fitness, runDays: [Weekday], planWeeks: Int, startDate: Date) {
+        self.goal = goal
+        self.fitness = fitness
+        self.runDays = runDays.sorted()
+        self.planWeeks = planWeeks
+        self.startDate = startDate
+    }
+}
