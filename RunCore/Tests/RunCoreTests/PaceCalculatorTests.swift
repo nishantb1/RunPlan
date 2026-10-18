@@ -57,4 +57,24 @@ final class PaceCalculatorTests: XCTestCase {
         )
         XCTAssertEqual(PaceCalculator.assess(makeProfile(goal: Goal(distance: .fiveK), fitness: .newRunner)), .reachable)
     }
+
+    func testGoalCheckIsExactAtWholePercentBoundaries() {
+        let race = Fitness.recentRace(distance: .fiveK, seconds: 1800)
+        XCTAssertEqual(
+            PaceCalculator.assess(makeProfile(goal: Goal(distance: .fiveK, targetSeconds: 1548), fitness: race, weeks: 8)),
+            .ambitious(suggestedWeeks: 14)
+        )
+        XCTAssertEqual(
+            PaceCalculator.assess(makeProfile(goal: Goal(distance: .fiveK, targetSeconds: 1512), fitness: race, weeks: 16)),
+            .reachable
+        )
+        XCTAssertEqual(
+            PaceCalculator.assess(makeProfile(goal: Goal(distance: .fiveK, targetSeconds: 1494), fitness: race, weeks: 16)),
+            .ambitious(suggestedWeeks: nil)
+        )
+        XCTAssertEqual(
+            PaceCalculator.assess(makeProfile(goal: Goal(distance: .fiveK, targetSeconds: 1980), fitness: race, weeks: 8)),
+            .reachable
+        )
+    }
 }

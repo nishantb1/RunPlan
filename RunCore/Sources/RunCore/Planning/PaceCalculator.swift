@@ -9,8 +9,12 @@ public enum PaceCalculator {
     static let riegelExponent = 1.06
     static let tempoOffset = 25
     static let easyOffset = 90
-    /// Improvement per training week that the goal check treats as plausible.
-    static let weeklyImprovement = 0.01
+    /// Improvement per training week that the goal check treats as plausible, in percent.
+    static let weeklyImprovementPercent = 1
+    /// Assumed typical 5K times, in seconds, for runners without a race result.
+    static let newRunnerFiveKSeconds = 2700
+    static let fiveMinuteRunnerFiveKSeconds = 2400
+    static let twentyMinuteRunnerFiveKSeconds = 2100
 
     /// The time at `to` equivalent to `seconds` at `from`.
     public static func equivalentTime(seconds: Int, from: RaceDistance, to: RaceDistance) -> Int {
@@ -45,15 +49,19 @@ public enum PaceCalculator {
         )
     }
 
-    /// Whether the goal time is plausible in `planWeeks` weeks from the runner's current ability.
+    /// Whether the goal time is plausible in the profile's `planWeeks` from the runner's current ability.
     public static func assess(_ profile: Profile) -> GoalAssessment {
         guard let target = profile.goal.targetSeconds else { return .reachable }
         let current = currentTime(at: profile.goal.distance, fitness: profile.fitness)
-        let needed = 1 - Double(target) / Double(current)
-        if needed <= weeklyImprovement * Double(profile.planWeeks) {
+        guard current > 0, target > 0 else { return .reachable }
+        // Needed improvement as a fraction is 1 - target / current. Compare and round up in whole
+        // percent with integers so exact boundaries are exact.
+        let allowedPercent = weeklyImprovementPercent * profile.planWeeks
+        if 100 * target >= (100 - allowedPercent) * current {
             return .reachable
         }
-        let weeks = Int((needed / weeklyImprovement).rounded(.up))
+        let neededPercent = (100 * (current - target) + current - 1) / current
+        let weeks = (neededPercent + weeklyImprovementPercent - 1) / weeklyImprovementPercent
         return .ambitious(suggestedWeeks: Profile.planWeeksRange.contains(weeks) ? weeks : nil)
     }
 
@@ -64,11 +72,11 @@ public enum PaceCalculator {
         case .recentRace(let raceDistance, let seconds):
             return equivalentTime(seconds: seconds, from: raceDistance, to: distance)
         case .newRunner:
-            return equivalentTime(seconds: 2700, from: .fiveK, to: distance)
+            return equivalentTime(seconds: newRunnerFiveKSeconds, from: .fiveK, to: distance)
         case .runsFiveMinutes:
-            return equivalentTime(seconds: 2400, from: .fiveK, to: distance)
+            return equivalentTime(seconds: fiveMinuteRunnerFiveKSeconds, from: .fiveK, to: distance)
         case .runsTwentyMinutes:
-            return equivalentTime(seconds: 2100, from: .fiveK, to: distance)
+            return equivalentTime(seconds: twentyMinuteRunnerFiveKSeconds, from: .fiveK, to: distance)
         }
     }
 }
