@@ -55,6 +55,14 @@ public enum StepExpander {
                 distanceMeters: meters,
                 targetPaceSecondsPerMile: step.targetPaceSecondsPerMile
             )
+        case .open:
+            return FlatStep(
+                sourceStepID: step.id,
+                kind: step.kind,
+                durationSeconds: nil,
+                distanceMeters: nil,
+                targetPaceSecondsPerMile: step.targetPaceSecondsPerMile
+            )
         }
     }
 }

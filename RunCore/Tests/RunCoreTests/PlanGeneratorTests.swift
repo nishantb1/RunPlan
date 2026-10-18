@@ -168,6 +168,7 @@ final class PlanGeneratorTests: XCTestCase {
                     switch step.measure {
                     case .time(let seconds): XCTAssertGreaterThan(seconds, 0, context)
                     case .distance(let meters): XCTAssertGreaterThan(meters, 0, context)
+                    case .open: XCTFail("open step in a generated plan: \(context)")
                     }
                     if workout.kind == .walkRun {
                         XCTAssertNil(step.targetPaceSecondsPerMile, context)

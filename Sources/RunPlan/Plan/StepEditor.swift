@@ -19,6 +19,8 @@ struct StepEditor: View {
                 Stepper(Pace.clock(seconds), value: timeSeconds, in: 15...7200, step: 15)
             case .distance(let meters):
                 Stepper(String(format: "%.2f mi", Pace.miles(fromMeters: meters)), value: distanceMiles, in: 0.05...26.2, step: 0.05)
+            case .open:
+                Text("Until you end the run").foregroundStyle(.secondary)
             }
 
             Toggle("Speed target", isOn: hasTarget)

@@ -71,6 +71,7 @@ struct WorkoutDetailView: View {
         switch step.measure {
         case .time(let seconds): amount = Pace.clock(seconds)
         case .distance(let meters): amount = String(format: "%.2f mi", Pace.miles(fromMeters: meters))
+        case .open: amount = "Until you end it"
         }
         guard let pace = step.targetPaceSecondsPerMile else { return amount }
         return "\(amount) @ \(String(format: "%.1f", Pace.mph(fromSecondsPerMile: pace))) mph"
