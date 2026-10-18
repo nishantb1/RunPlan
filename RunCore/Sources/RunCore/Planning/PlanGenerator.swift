@@ -114,6 +114,7 @@ public enum PlanGenerator {
         }
     }
 
+    /// A safety bound: with today's easy-run caps (40 and 50 minutes) the long run tops out at 60 and 75 minutes, so this never binds.
     static func longRunCap(_ distance: RaceDistance) -> Int {
         switch distance {
         case .fiveK: return 60

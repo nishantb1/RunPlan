@@ -126,6 +126,19 @@ final class PlanGeneratorTests: XCTestCase {
         XCTAssertEqual(week1.map(\.kind), [.easy, .longRun, .intervals])
     }
 
+    func testDatesStayAtMidnightAcrossDaylightSavingChange() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/New_York")!
+        var profile = makeProfile()
+        profile.startDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 26))!
+        let workouts = PlanGenerator.generate(profile, calendar: calendar).weeks.flatMap(\.workouts)
+        XCTAssertEqual(workouts.count, 24)
+        for workout in workouts {
+            XCTAssertEqual(workout.date, calendar.startOfDay(for: workout.date))
+            XCTAssertTrue(profile.runDays.contains(Weekday(of: workout.date, calendar: calendar)))
+        }
+    }
+
     // MARK: - Invariants
 
     private func checkValid(_ plan: Plan, profile: Profile, label: String) {

@@ -28,6 +28,12 @@ final class PlanModelTests: XCTestCase {
         XCTAssertEqual(profile.daysPerWeek, 3)
     }
 
+    func testDuplicateRunDaysAreRemoved() {
+        let profile = makeProfile(runDays: [.saturday, .tuesday, .saturday])
+        XCTAssertEqual(profile.runDays, [.tuesday, .saturday])
+        XCTAssertEqual(profile.daysPerWeek, 2)
+    }
+
     func testWeekdayMatchesCalendar() {
         XCTAssertEqual(Weekday(of: TestCalendar.date(2026, 11, 2), calendar: TestCalendar.utc), .monday)
         XCTAssertEqual(Weekday(of: TestCalendar.date(2026, 11, 8), calendar: TestCalendar.utc), .sunday)

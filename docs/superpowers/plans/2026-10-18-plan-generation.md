@@ -96,6 +96,7 @@ README.md, docs/superpowers/specs/2026-10-12-runplan-design.md                  
 **Acceptance Criteria:**
 - [ ] A profile with a race result, and one with a "just finish" goal, round-trip through JSON unchanged
 - [ ] `Profile` keeps `runDays` sorted Monday first and derives `daysPerWeek`
+- [ ] Duplicate run days are removed
 - [ ] `Weekday(of:calendar:)` matches the calendar, and `Weekday.allCases` runs Monday to Sunday
 - [ ] A `Plan` round-trips through JSON unchanged
 
@@ -202,6 +203,12 @@ final class PlanModelTests: XCTestCase {
         let profile = makeProfile(runDays: [.sunday, .monday, .wednesday])
         XCTAssertEqual(profile.runDays, [.monday, .wednesday, .sunday])
         XCTAssertEqual(profile.daysPerWeek, 3)
+    }
+
+    func testDuplicateRunDaysAreRemoved() {
+        let profile = makeProfile(runDays: [.saturday, .tuesday, .saturday])
+        XCTAssertEqual(profile.runDays, [.tuesday, .saturday])
+        XCTAssertEqual(profile.daysPerWeek, 2)
     }
 
     func testWeekdayMatchesCalendar() {
@@ -350,7 +357,7 @@ public struct Profile: Codable, Equatable, Sendable {
 
     public var goal: Goal
     public var fitness: Fitness
-    /// Sorted Monday first by `init`; the generator re-sorts, so later edits need not.
+    /// Unique and sorted Monday first by `init`; the generator re-sorts, so later edits need not.
     public var runDays: [Weekday]
     public var planWeeks: Int
     public var startDate: Date
@@ -360,7 +367,7 @@ public struct Profile: Codable, Equatable, Sendable {
     public init(goal: Goal, fitness: Fitness, runDays: [Weekday], planWeeks: Int, startDate: Date) {
         self.goal = goal
         self.fitness = fitness
-        self.runDays = runDays.sorted()
+        self.runDays = Array(Set(runDays)).sorted()
         self.planWeeks = planWeeks
         self.startDate = startDate
     }
@@ -1034,7 +1041,7 @@ git commit -m "Add workout builder and walk-run ladder" -m "Co-Authored-By: Clau
 - [ ] Running build weeks grow by at most 10 percent plus 60 s per workout; running cutback weeks are at most 80 percent of the previous build week plus 60 s per workout
 - [ ] The same profile always gives the same plan, apart from IDs
 
-**Verify:** TEST with `--filter PlanGeneratorTests` → `Executed 6 tests, with 0 failures`
+**Verify:** TEST with `--filter PlanGeneratorTests` → `Executed 7 tests, with 0 failures`
 
 **Steps:**
 
@@ -1169,6 +1176,19 @@ final class PlanGeneratorTests: XCTestCase {
         let week1 = generate(profile).weeks[0].workouts
         XCTAssertEqual(week1.map(\.date), [TestCalendar.date(2026, 11, 5), TestCalendar.date(2026, 11, 7), TestCalendar.date(2026, 11, 10)])
         XCTAssertEqual(week1.map(\.kind), [.easy, .longRun, .intervals])
+    }
+
+    func testDatesStayAtMidnightAcrossDaylightSavingChange() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/New_York")!
+        var profile = makeProfile()
+        profile.startDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 26))!
+        let workouts = PlanGenerator.generate(profile, calendar: calendar).weeks.flatMap(\.workouts)
+        XCTAssertEqual(workouts.count, 24)
+        for workout in workouts {
+            XCTAssertEqual(workout.date, calendar.startOfDay(for: workout.date))
+            XCTAssertTrue(profile.runDays.contains(Weekday(of: workout.date, calendar: calendar)))
+        }
     }
 
     // MARK: - Invariants
@@ -1363,6 +1383,7 @@ public enum PlanGenerator {
         }
     }
 
+    /// A safety bound: with today's easy-run caps (40 and 50 minutes) the long run tops out at 60 and 75 minutes, so this never binds.
     static func longRunCap(_ distance: RaceDistance) -> Int {
         switch distance {
         case .fiveK: return 60
