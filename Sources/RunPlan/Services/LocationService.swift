@@ -9,6 +9,8 @@ import RunCore
 final class LocationService: NSObject, CLLocationManagerDelegate {
 
     private(set) var authorization: CLAuthorizationStatus
+    /// True when Precise Location is off, so fixes are too coarse to measure a run.
+    private(set) var isReducedAccuracy: Bool
     /// The newest fix, good or bad. The outdoor start sheet watches it to know when GPS is ready.
     private(set) var latest: LocationSample?
     /// Receives every fix while updates are running.
@@ -21,6 +23,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         let manager = CLLocationManager()
         self.manager = manager
         self.authorization = manager.authorizationStatus
+        self.isReducedAccuracy = manager.accuracyAuthorization == .reducedAccuracy
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
@@ -57,8 +60,15 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
+        let reduced = manager.accuracyAuthorization == .reducedAccuracy
         Task { @MainActor in
             self.authorization = status
+            self.isReducedAccuracy = reduced
+            // CoreLocation stops delivering when permission is withdrawn, so a later start()
+            // must not think updates are still running.
+            if !self.isAuthorized {
+                self.isUpdating = false
+            }
         }
     }
 

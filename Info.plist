@@ -10,7 +10,7 @@
         <string>location</string>
     </array>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>RunPlan uses your location during outdoor runs to measure distance, pace and your route.</string>
+    <string>RunPlan uses your location during outdoor runs, including with the screen locked, to measure distance, pace and your route.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>RunPlan uses your location during outdoor runs, including with the screen locked, to measure distance, pace and your route.</string>
     <key>UIDeviceFamily</key>

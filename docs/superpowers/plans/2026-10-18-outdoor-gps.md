@@ -1499,7 +1499,7 @@ In `Info.plist`, add `<string>location</string>` under `<string>audio</string>` 
 
 ```xml
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>RunPlan uses your location during outdoor runs to measure distance, pace and your route.</string>
+    <string>RunPlan uses your location during outdoor runs, including with the screen locked, to measure distance, pace and your route.</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
     <string>RunPlan uses your location during outdoor runs, including with the screen locked, to measure distance, pace and your route.</string>
 ```
@@ -1518,6 +1518,8 @@ import RunCore
 final class LocationService: NSObject, CLLocationManagerDelegate {
 
     private(set) var authorization: CLAuthorizationStatus
+    /// True when Precise Location is off, so fixes are too coarse to measure a run.
+    private(set) var isReducedAccuracy: Bool
     /// The newest fix, good or bad. The outdoor start sheet watches it to know when GPS is ready.
     private(set) var latest: LocationSample?
     /// Receives every fix while updates are running.
@@ -1530,6 +1532,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         let manager = CLLocationManager()
         self.manager = manager
         self.authorization = manager.authorizationStatus
+        self.isReducedAccuracy = manager.accuracyAuthorization == .reducedAccuracy
         super.init()
         manager.delegate = self
         manager.activityType = .fitness
@@ -1566,8 +1569,15 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
+        let reduced = manager.accuracyAuthorization == .reducedAccuracy
         Task { @MainActor in
             self.authorization = status
+            self.isReducedAccuracy = reduced
+            // CoreLocation stops delivering when permission is withdrawn, so a later start()
+            // must not think updates are still running.
+            if !self.isAuthorized {
+                self.isUpdating = false
+            }
         }
     }
 
@@ -1896,6 +1906,7 @@ git commit -m "Track outdoor runs in the workout session"
 **Acceptance Criteria:**
 - [ ] Choosing Outdoor opens a sheet that requests permission when undecided, starts GPS, and enables Start only once a fix passes the filter
 - [ ] With location denied, the sheet explains, links to Settings, and offers "Use treadmill instead"
+- [ ] With Precise Location off, the sheet says to turn it on instead of waiting silently
 - [ ] The session starts only after the sheet has closed; Cancel stops GPS
 - [ ] The Plan screen's toolbar has Free run with the same Treadmill or Outdoor choice
 - [ ] BUILD succeeds
@@ -1977,6 +1988,9 @@ struct OutdoorStartView: View {
     }
 
     private var accuracyText: String {
+        if app.location.isReducedAccuracy {
+            return "Precise Location is off for RunPlan. Turn it on in Settings so distance and pace can be measured."
+        }
         guard let latest = app.location.latest, latest.horizontalAccuracy >= 0 else {
             return "Head outside with a clear view of the sky."
         }
