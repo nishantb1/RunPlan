@@ -16,4 +16,8 @@ public struct PlanStore: Sendable {
     public func save(_ plan: Plan) throws {
         try store.save(plan, as: Self.file)
     }
+
+    public func delete() {
+        store.delete(Self.file)
+    }
 }
