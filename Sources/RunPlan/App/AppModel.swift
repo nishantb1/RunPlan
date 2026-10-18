@@ -14,7 +14,6 @@ final class AppModel {
     private(set) var records: [RunRecord] = []
     /// nil until onboarding has created one.
     private(set) var plan: Plan?
-    let todaysWorkout: Workout = SampleWorkouts.runWalk()
 
     /// Non-nil while a workout is on screen.
     var session: WorkoutSessionModel?

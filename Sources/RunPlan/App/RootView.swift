@@ -12,28 +12,33 @@ struct RootView: View {
             if app.plan == nil {
                 OnboardingView()
             } else {
-                HomeView()
-            }
-        }
-            .fullScreenCover(item: $app.session) { session in
-                SessionContainerView(session: session)
-            }
-            .alert(
-                "Resume your workout?",
-                isPresented: Binding(
-                    get: { app.pendingResume != nil && app.session == nil },
-                    set: { if !$0 { app.pendingResume = nil } }
-                )
-            ) {
-                Button("Resume") { app.resumePending() }
-                Button("Discard", role: .destructive) { app.discardPending() }
-            } message: {
-                Text("A workout was in progress when the app closed. It will resume paused.")
-            }
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .active {
-                    app.session?.handleForeground()
+                TabView {
+                    PlanView()
+                        .tabItem { Label("Plan", systemImage: "calendar") }
+                    RunsView()
+                        .tabItem { Label("Runs", systemImage: "figure.run") }
                 }
             }
+        }
+        .fullScreenCover(item: $app.session) { session in
+            SessionContainerView(session: session)
+        }
+        .alert(
+            "Resume your workout?",
+            isPresented: Binding(
+                get: { app.pendingResume != nil && app.session == nil },
+                set: { if !$0 { app.pendingResume = nil } }
+            )
+        ) {
+            Button("Resume") { app.resumePending() }
+            Button("Discard", role: .destructive) { app.discardPending() }
+        } message: {
+            Text("A workout was in progress when the app closed. It will resume paused.")
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                app.session?.handleForeground()
+            }
+        }
     }
 }

@@ -1,14 +1,29 @@
 import SwiftUI
 import RunCore
 
+/// A planned workout's date and steps, with Start.
 struct WorkoutDetailView: View {
     @Environment(AppModel.self) private var app
-    let workout: Workout
+    let workoutID: UUID
 
     @State private var choosingMode = false
 
     var body: some View {
+        if let workout = app.plan?.workout(id: workoutID) {
+            detail(workout)
+        } else {
+            ContentUnavailableView("Workout not found", systemImage: "questionmark.circle")
+        }
+    }
+
+    private func detail(_ workout: Workout) -> some View {
         List {
+            Section {
+                LabeledContent("Date", value: workout.date.formatted(date: .complete, time: .omitted))
+                if workout.recordID != nil {
+                    Label("Completed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                }
+            }
             Section("Steps") {
                 ForEach(workout.steps) { step in
                     HStack {
