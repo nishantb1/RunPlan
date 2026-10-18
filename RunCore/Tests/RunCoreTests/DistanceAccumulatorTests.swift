@@ -33,6 +33,15 @@ final class DistanceAccumulatorTests: XCTestCase {
         XCTAssertEqual(accumulator.route.count, 3)
     }
 
+    func testRecoversFromABadReferenceFix() {
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 500))
+        XCTAssertEqual(accumulator.add(fix(at: 1, north: 0)), 0)
+        accumulator.add(fix(at: 60, north: 0))
+        XCTAssertEqual(accumulator.totalMeters, 500, accuracy: 1e-6)
+        XCTAssertEqual(accumulator.route.count, 2)
+    }
+
     func testFixWithNoElapsedTimeIsIgnored() {
         var accumulator = DistanceAccumulator()
         accumulator.add(fix(at: 0, north: 0))

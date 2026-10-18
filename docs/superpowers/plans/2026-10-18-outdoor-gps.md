@@ -266,7 +266,7 @@ git commit -m "Add GPS samples, filter and distance"
 - [ ] Fixes while paused move the reference point but add no distance or route points
 - [ ] A fix with no time since the previous one is ignored
 
-**Verify:** TEST with `--filter DistanceAccumulatorTests` → `Executed 4 tests, with 0 failures`
+**Verify:** TEST with `--filter DistanceAccumulatorTests` → `Executed 5 tests, with 0 failures`
 
 **Steps:**
 
@@ -310,6 +310,15 @@ final class DistanceAccumulatorTests: XCTestCase {
         XCTAssertEqual(accumulator.route.count, 3)
     }
 
+    func testRecoversFromABadReferenceFix() {
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 500))
+        XCTAssertEqual(accumulator.add(fix(at: 1, north: 0)), 0)
+        accumulator.add(fix(at: 60, north: 0))
+        XCTAssertEqual(accumulator.totalMeters, 500, accuracy: 1e-6)
+        XCTAssertEqual(accumulator.route.count, 2)
+    }
+
     func testFixWithNoElapsedTimeIsIgnored() {
         var accumulator = DistanceAccumulator()
         accumulator.add(fix(at: 0, north: 0))
@@ -339,6 +348,8 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
 
     public private(set) var totalMeters: Double = 0
     public private(set) var route: [RoutePoint] = []
+    /// The reference fix. It is not advanced on a rejected jump, so the implied speed falls as
+    /// time passes and a bad reference ages out instead of blocking every later fix.
     private var last: LocationSample?
 
     public init() {}

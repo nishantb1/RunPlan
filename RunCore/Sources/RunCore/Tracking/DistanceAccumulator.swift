@@ -8,6 +8,8 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
 
     public private(set) var totalMeters: Double = 0
     public private(set) var route: [RoutePoint] = []
+    /// The reference fix. It is not advanced on a rejected jump, so the implied speed falls as
+    /// time passes and a bad reference ages out instead of blocking every later fix.
     private var last: LocationSample?
 
     public init() {}
