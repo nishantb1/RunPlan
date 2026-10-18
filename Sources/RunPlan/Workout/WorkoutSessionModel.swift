@@ -31,6 +31,9 @@ final class WorkoutSessionModel: Identifiable {
     private let haptics = HapticsService()
     private let store: JSONStore
     private let location: LocationService?
+    private let settings: AppSettings
+    /// Outdoors with auto-pause on only.
+    private var autoPause: AutoPauseDetector?
     private var uiTimer: Timer?
     private var lastCheckpointSave = Date.distantPast
 
@@ -38,7 +41,7 @@ final class WorkoutSessionModel: Identifiable {
     /// never land after a newer one, or after the finished workout's checkpoint is deleted.
     private static let checkpointQueue = DispatchQueue(label: "RunPlan.checkpoint", qos: .utility)
 
-    init(workout: Workout, mode: RunMode, store: JSONStore, location: LocationService) {
+    init(workout: Workout, mode: RunMode, store: JSONStore, location: LocationService, settings: AppSettings) {
         self.workout = workout
         self.mode = mode
         self.startedAt = Date()
@@ -46,10 +49,12 @@ final class WorkoutSessionModel: Identifiable {
         self.engine = WorkoutEngine(planSteps: workout.steps)
         self.location = mode == .outdoor ? location : nil
         self.tracker = mode == .outdoor ? OutdoorTracker() : nil
+        self.settings = settings
+        self.autoPause = mode == .outdoor && settings.autoPause ? AutoPauseDetector() : nil
     }
 
     /// Resumes a workout that was in progress when the app was killed. It comes back paused.
-    init(resuming active: ActiveWorkout, store: JSONStore, location: LocationService) {
+    init(resuming active: ActiveWorkout, store: JSONStore, location: LocationService, settings: AppSettings) {
         self.workout = active.workout
         self.mode = active.mode
         self.startedAt = active.startedAt
@@ -57,9 +62,12 @@ final class WorkoutSessionModel: Identifiable {
         self.engine = WorkoutEngine(steps: StepExpander.expand(active.workout.steps), restoring: active.checkpoint)
         self.location = active.mode == .outdoor ? location : nil
         self.tracker = active.mode == .outdoor ? (active.outdoor ?? OutdoorTracker()) : nil
+        self.settings = settings
+        self.autoPause = active.mode == .outdoor && settings.autoPause ? AutoPauseDetector() : nil
     }
 
     var isPaused: Bool { snapshot?.state == .paused }
+    var isAutoPaused: Bool { autoPause?.isAutoPaused ?? false }
     /// Time actually run, excluding pauses; skip back does not shorten it.
     var durationSeconds: Int { Int((snapshot?.activeElapsed ?? 0).rounded()) }
     var distanceMeters: Double { tracker?.totalMeters ?? 0 }
@@ -81,18 +89,20 @@ final class WorkoutSessionModel: Identifiable {
     func begin() {
         audio.activate()
         engine.start()
-        UIApplication.shared.isIdleTimerDisabled = true
+        UIApplication.shared.isIdleTimerDisabled = settings.keepScreenAwake
         startLocation()
         refresh()
         startUITimer()
     }
 
     func pause() {
+        autoPause?.manualOverride()
         engine.pause()
         refresh(forceCheckpoint: true)
     }
 
     func resume() {
+        autoPause?.manualOverride()
         engine.resume()
         refresh(forceCheckpoint: true)
     }
@@ -132,10 +142,37 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     /// Records a fix and refreshes straight away, so splits and distance steps are handled
-    /// promptly even if the screen refresh timer is slowed while the phone is locked.
+    /// promptly even if the screen refresh timer is slowed while the phone is locked. With
+    /// auto-pause on, the fix may also pause or resume the workout.
     private func record(_ sample: LocationSample) {
-        tracker?.record(sample, now: Date(), counting: engine.state == .running)
+        let now = Date()
+        tracker?.record(sample, now: now, counting: engine.state == .running)
+        if SampleFilter.accepts(sample, now: now),
+           let action = autoPause?.update(sample, isRunning: engine.state == .running) {
+            applyAutoPause(action)
+            return
+        }
         refresh()
+    }
+
+    private func applyAutoPause(_ action: AutoPauseDetector.Action) {
+        switch action {
+        case .pause:
+            engine.pause()
+            speak("Auto-paused.")
+        case .resume:
+            engine.resume()
+            speak("Resumed.")
+        }
+        haptics.stepTransition()
+        refresh(forceCheckpoint: true)
+    }
+
+    /// Speaks only when voice cues are on. Beeps and haptics are not affected.
+    private func speak(_ text: String) {
+        if settings.voiceCues {
+            audio.speak(text)
+        }
     }
 
     private func startUITimer() {
@@ -155,12 +192,12 @@ final class WorkoutSessionModel: Identifiable {
         for event in scheduler.events(for: snapshot) {
             switch event {
             case .announce(let step):
-                audio.speak(CueText.announcement(for: step, mode: mode))
+                speak(CueText.announcement(for: step, mode: mode))
                 haptics.stepTransition()
             case .countdownBeep:
                 audio.playCountdownBeep()
             case .finished:
-                audio.speak("Workout complete.")
+                speak("Workout complete.")
                 haptics.stepTransition()
             }
         }
@@ -188,9 +225,9 @@ final class WorkoutSessionModel: Identifiable {
         for event in tracker.events(for: snapshot, now: Date()) {
             switch event {
             case .split(let split):
-                audio.speak(CueText.splitAnnouncement(split))
+                speak(CueText.splitAnnouncement(split))
             case .paceCue(let cue):
-                audio.speak(CueText.paceCue(cue))
+                speak(CueText.paceCue(cue))
             case .stepDistanceReached:
                 stepComplete = true
             }

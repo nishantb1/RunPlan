@@ -10,12 +10,15 @@ final class AppModel {
     let store: JSONStore
     private let runs: RunStore
     private let plans: PlanStore
+    private let settingsStore: SettingsStore
     /// Shared by the outdoor start sheet and outdoor sessions.
     let location = LocationService()
 
     private(set) var records: [RunRecord] = []
     /// nil until onboarding has created one.
     private(set) var plan: Plan?
+    /// Read by each workout when it starts.
+    private(set) var settings: AppSettings
 
     /// Non-nil while a workout is on screen.
     var session: WorkoutSessionModel?
@@ -28,6 +31,8 @@ final class AppModel {
         store = JSONStore(directory: documents)
         runs = RunStore(store: store)
         plans = PlanStore(store: store)
+        settingsStore = SettingsStore(store: store)
+        settings = settingsStore.load()
         records = runs.all()
         plan = plans.load()
         pendingResume = store.load(ActiveWorkout.self, from: WorkoutSessionModel.checkpointFile)
@@ -45,8 +50,31 @@ final class AppModel {
         persistPlan()
     }
 
+    func updateSettings(_ change: (inout AppSettings) -> Void) {
+        change(&settings)
+        try? settingsStore.save(settings)
+    }
+
+    /// A saved run's route, loaded from its own file when the run is opened.
+    func route(for record: RunRecord) -> [RoutePoint] {
+        runs.route(for: record)
+    }
+
+    /// Deletes the plan, every run, the settings and any unfinished workout, which returns the
+    /// app to onboarding.
+    func reset() {
+        plans.delete()
+        runs.deleteAll()
+        settingsStore.delete()
+        store.delete(WorkoutSessionModel.checkpointFile)
+        plan = nil
+        records = []
+        settings = AppSettings()
+        pendingResume = nil
+    }
+
     func start(_ workout: Workout, mode: RunMode) {
-        let session = WorkoutSessionModel(workout: workout, mode: mode, store: store, location: location)
+        let session = WorkoutSessionModel(workout: workout, mode: mode, store: store, location: location, settings: settings)
         self.session = session
         session.begin()
     }
@@ -54,7 +82,7 @@ final class AppModel {
     func resumePending() {
         guard let active = pendingResume else { return }
         pendingResume = nil
-        let session = WorkoutSessionModel(resuming: active, store: store, location: location)
+        let session = WorkoutSessionModel(resuming: active, store: store, location: location, settings: settings)
         self.session = session
         session.begin()
     }

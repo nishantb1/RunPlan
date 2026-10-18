@@ -26,6 +26,12 @@ struct LiveWorkoutView: View {
                                     .foregroundStyle(.gray)
                             }
 
+                            if session.isAutoPaused {
+                                Text("Auto-paused. Set off to resume.")
+                                    .font(.headline)
+                                    .foregroundStyle(.yellow)
+                            }
+
                             Text(CueText.displayKind(snapshot.step.kind).uppercased())
                                 .font(.system(size: isOutdoor ? 52 : 64, weight: .heavy))
                                 .foregroundStyle(color(for: snapshot.step.kind))
