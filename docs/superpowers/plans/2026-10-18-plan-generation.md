@@ -28,7 +28,7 @@ MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 -u nishant -- bash -lc \
 
 These are called **TEST** and **BUILD** below. To run one test class, add `--filter <ClassName>` after `swift test`.
 
-Rules carried over from stage 2: one type per file (small private helper views may share their screen's file), value types where possible, no force unwrapping outside tests, no SwiftUI/UIKit/AVFoundation imports in `RunCore`. Everything `RunCore` exposes to the app is `public`. Commit after each task with the trailer `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+Rules carried over from stage 2: one type per file (small private helper views may share their screen's file), value types where possible, no force unwrapping outside tests, no SwiftUI/UIKit/AVFoundation imports in `RunCore`. Everything `RunCore` exposes to the app is `public`. Commit after each task, with no Co-Authored-By or other Claude attribution line.
 
 `RunCore` tasks (1 to 5, and the first half of 9) are test-first. App tasks (6 to 9) have no unit tests; they are verified with BUILD, and on the phone at the end (Task 10).
 
@@ -443,7 +443,7 @@ Expected: all tests pass, including the 6 in `PlanModelTests`.
 
 ```bash
 git add RunCore/Sources/RunCore/Models RunCore/Tests/RunCoreTests/PlanTestSupport.swift RunCore/Tests/RunCoreTests/PlanModelTests.swift
-git commit -m "Add profile and plan models" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add profile and plan models"
 ```
 
 ---
@@ -695,7 +695,7 @@ Expected: all tests pass.
 
 ```bash
 git add RunCore/Sources/RunCore/Planning RunCore/Tests/RunCoreTests/PaceCalculatorTests.swift
-git commit -m "Add pace calculator and goal check" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add pace calculator and goal check"
 ```
 
 ---
@@ -1022,7 +1022,7 @@ Expected: all tests pass.
 
 ```bash
 git add RunCore/Sources/RunCore/Planning RunCore/Tests/RunCoreTests/WorkoutBuilderTests.swift
-git commit -m "Add workout builder and walk-run ladder" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add workout builder and walk-run ladder"
 ```
 
 ---
@@ -1422,7 +1422,7 @@ Expected: all tests pass. `testEveryProfileGivesAValidPlan` checks 704 plans and
 
 ```bash
 git add RunCore/Sources/RunCore/Planning/PlanGenerator.swift RunCore/Tests/RunCoreTests/PlanGeneratorTests.swift
-git commit -m "Add plan generator" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add plan generator"
 ```
 
 ---
@@ -1661,7 +1661,7 @@ Expected: all tests pass.
 
 ```bash
 git add RunCore/Sources/RunCore/Models/Plan.swift RunCore/Sources/RunCore/Storage/PlanStore.swift RunCore/Tests/RunCoreTests/PlanTests.swift RunCore/Tests/RunCoreTests/PlanStoreTests.swift
-git commit -m "Add plan queries, completion, edits and storage" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add plan queries, completion, edits and storage"
 ```
 
 ---
@@ -1789,7 +1789,7 @@ Expected: success.
 
 ```bash
 git add Sources/RunPlan/App/AppModel.swift
-git commit -m "Keep the training plan in the app model" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Keep the training plan in the app model"
 ```
 
 ---
@@ -2211,7 +2211,7 @@ Expected: success.
 
 ```bash
 git add Sources/RunPlan/Onboarding Sources/RunPlan/App/RootView.swift
-git commit -m "Add onboarding with plan preview and goal check" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add onboarding with plan preview and goal check"
 ```
 
 ---
@@ -2476,7 +2476,7 @@ Expected: success. If it reports `cannot find 'HomeView'` or `todaysWorkout`, a 
 
 ```bash
 git add Sources/RunPlan
-git commit -m "Add Plan and Runs tabs" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add Plan and Runs tabs"
 ```
 
 ---
@@ -2494,7 +2494,7 @@ git commit -m "Add Plan and Runs tabs" -m "Co-Authored-By: Claude Opus 5.5 <nore
 - [ ] `Workout` can tell which step starts a repeat group, read its repeat count the way `StepExpander` does, and set the count on every step of the group
 - [ ] The detail screen has Edit, opening a form whose changes apply only on Save
 - [ ] The repeat count is edited once per group, on its first step
-- [ ] Save is disabled when no steps remain
+- [ ] Save is disabled when no steps remain or the title is blank
 - [ ] TEST and BUILD succeed
 
 **Verify:** TEST with `--filter WorkoutRepeatGroupTests` → `Executed 3 tests, with 0 failures`; then BUILD → success
@@ -2722,7 +2722,7 @@ struct WorkoutEditView: View {
                         onSave(draft)
                         dismiss()
                     }
-                    .disabled(draft.steps.isEmpty)
+                    .disabled(draft.steps.isEmpty || draft.title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
@@ -2773,7 +2773,7 @@ Expected: success.
 
 ```bash
 git add RunCore/Sources/RunCore/Models/Workout+RepeatGroups.swift RunCore/Tests/RunCoreTests/WorkoutRepeatGroupTests.swift Sources/RunPlan/Plan Sources/RunPlan/Workout/WorkoutDetailView.swift
-git commit -m "Add workout editing" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Add workout editing"
 ```
 
 ---
@@ -2836,7 +2836,7 @@ Expected: success.
 
 ```bash
 git add README.md docs/superpowers/specs/2026-10-12-runplan-design.md
-git commit -m "Document plan generation and its on-device checks" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git commit -m "Document plan generation and its on-device checks"
 ```
 
 - [ ] **Step 5: Install on the phone**

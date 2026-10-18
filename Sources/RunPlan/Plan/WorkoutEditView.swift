@@ -48,7 +48,7 @@ struct WorkoutEditView: View {
                         onSave(draft)
                         dismiss()
                     }
-                    .disabled(draft.steps.isEmpty)
+                    .disabled(draft.steps.isEmpty || draft.title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
