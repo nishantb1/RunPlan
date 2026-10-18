@@ -34,6 +34,10 @@ final class WorkoutSessionModel: Identifiable {
     private var uiTimer: Timer?
     private var lastCheckpointSave = Date.distantPast
 
+    /// Checkpoint writes and the final delete run in order on one queue, so an older write can
+    /// never land after a newer one, or after the finished workout's checkpoint is deleted.
+    private static let checkpointQueue = DispatchQueue(label: "RunPlan.checkpoint", qos: .utility)
+
     init(workout: Workout, mode: RunMode, store: JSONStore, location: LocationService) {
         self.workout = workout
         self.mode = mode
@@ -109,8 +113,12 @@ final class WorkoutSessionModel: Identifiable {
         refresh()
     }
 
-    /// Call when the app returns to the foreground so the screen catches up at once.
+    /// Call when the app returns to the foreground so the screen catches up at once. Also
+    /// restarts GPS in case location permission was turned off and on again during the run.
     func handleForeground() {
+        if !isFinished {
+            location?.start()
+        }
         refresh()
     }
 
@@ -204,7 +212,7 @@ final class WorkoutSessionModel: Identifiable {
         // A long run's route makes this about 1 MB, so encode and write it off the main actor.
         let store = self.store
         let file = Self.checkpointFile
-        Task.detached(priority: .utility) {
+        Self.checkpointQueue.async {
             try? store.save(active, as: file)
         }
     }
@@ -219,7 +227,12 @@ final class WorkoutSessionModel: Identifiable {
         }
         location?.onSample = nil
         location?.stop()
-        store.delete(Self.checkpointFile)
+        // Waits behind any write still in flight, so the deleted checkpoint stays deleted.
+        let store = self.store
+        let file = Self.checkpointFile
+        Self.checkpointQueue.sync {
+            store.delete(file)
+        }
     }
 
     /// Call once the summary has been saved or discarded.
