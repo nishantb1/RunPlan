@@ -18,13 +18,15 @@ final class GeoTests: XCTestCase {
         let now = trackStart.addingTimeInterval(5)
         XCTAssertTrue(SampleFilter.accepts(fix(at: 0, north: 0, accuracy: 20), now: now))
         XCTAssertTrue(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: 0), now: now))
+        XCTAssertTrue(SampleFilter.accepts(fix(at: 5.5, north: 0), now: now))
     }
 
-    func testFilterRejectsInaccurateInvalidOrStaleFixes() {
+    func testFilterRejectsInaccurateInvalidStaleOrFutureFixes() {
         let now = trackStart.addingTimeInterval(5)
         XCTAssertFalse(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: 20.5), now: now))
         XCTAssertFalse(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: -1), now: now))
         XCTAssertFalse(SampleFilter.accepts(fix(at: -0.5, north: 0), now: now))
+        XCTAssertFalse(SampleFilter.accepts(fix(at: 65, north: 0), now: now))
     }
 
     func testSampleMakesRoutePoint() {

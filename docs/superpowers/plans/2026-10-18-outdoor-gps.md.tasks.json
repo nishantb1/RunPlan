@@ -4,7 +4,7 @@
     {
       "id": 0,
       "subject": "Task 1: GPS samples, filter and distance",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** A plain LocationSample, the accuracy-and-age filter, and haversine distance.\n\n**Files:**\n- RunCore/Sources/RunCore/Tracking/LocationSample.swift\n- RunCore/Sources/RunCore/Tracking/SampleFilter.swift\n- RunCore/Sources/RunCore/Tracking/Geo.swift\n- RunCore/Tests/RunCoreTests/TrackingTestSupport.swift\n- RunCore/Tests/RunCoreTests/GeoTests.swift\n\n**Acceptance Criteria:**\n- [ ] 0.001 deg latitude is 111.195 m; 0.001 deg longitude at 51.5N is 69.220 m\n- [ ] Filter accepts accuracy 0-20 m and age up to 5 s only\n- [ ] A sample converts to a RoutePoint\n\n**Verify:** swift test in RunCore via WSL --filter GeoTests\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"RunCore/Sources/RunCore/Tracking/LocationSample.swift\",\"RunCore/Sources/RunCore/Tracking/SampleFilter.swift\",\"RunCore/Sources/RunCore/Tracking/Geo.swift\",\"RunCore/Tests/RunCoreTests/TrackingTestSupport.swift\",\"RunCore/Tests/RunCoreTests/GeoTests.swift\"],\"verifyCommand\":\"swift test in RunCore via WSL --filter GeoTests\",\"acceptanceCriteria\":[\"0.001 deg latitude is 111.195 m; 0.001 deg longitude at 51.5N is 69.220 m\",\"Filter accepts accuracy 0-20 m and age up to 5 s only\",\"A sample converts to a RoutePoint\"]}\n```"
     },
     {
@@ -107,5 +107,5 @@
       "description": "**Goal:** Record stage 4 decisions in the spec, add the outdoor checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes auto-pause moved to stage 5 and the GPS rules\n- [ ] README has outdoor checklist\n- [ ] Full TEST and BUILD pass\n- [ ] Installed and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes auto-pause moved to stage 5 and the GPS rules\",\"README has outdoor checklist\",\"Full TEST and BUILD pass\",\"Installed and checklist handed to the user\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-18T20:20:54.000Z"
+  "lastUpdated": "2026-10-18T20:27:40.000Z"
 }

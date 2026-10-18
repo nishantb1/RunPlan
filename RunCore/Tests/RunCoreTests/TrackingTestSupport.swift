@@ -5,7 +5,7 @@ import Foundation
 let trackStart = Date(timeIntervalSince1970: 1_800_000_000)
 
 /// Metres per degree of latitude on the haversine sphere, so `north` gives exact distances.
-let metersPerDegreeLatitude = Double.pi * 6_371_000 / 180
+let metersPerDegreeLatitude = Double.pi * Geo.earthRadiusMeters / 180
 
 /// A fix `seconds` after `trackStart`, `meters` north of (0, 0).
 func fix(at seconds: Double, north meters: Double, accuracy: Double = 5) -> LocationSample {

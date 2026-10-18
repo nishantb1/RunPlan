@@ -36,7 +36,7 @@ Rules: one type per file (small private helper views may share their screen's fi
 
 The numbers below were checked in Python before writing the tests.
 
-- **Sample filter:** a fix is used only if its horizontal accuracy is between 0 and 20 m and it is at most 5 s old.
+- **Sample filter:** a fix is used only if its horizontal accuracy is between 0 and 20 m, it is at most 5 s old, and it is dated no more than 1 s in the future.
 - **Distance:** the great-circle (haversine) distance between consecutive used fixes, with an Earth radius of 6,371,000 m. A fix implying more than 10 m/s (about 2:41 per mile) since the last one is a GPS jump: it is ignored, and the previous fix stays the reference. While the workout is paused, fixes move the reference point but add no distance and no route points.
 - **Pace:** distance and time between the oldest and newest fixes within the last 15 s. There is no pace until the window spans at least 5 s and 5 m. The window restarts after a pause.
 - **Splits:** a split is recorded each mile of distance, timed in active (unpaused) workout time. A crossing between two fixes is timed by straight-line interpolation. A partial final split is kept if it is at least 16 m.
@@ -104,7 +104,7 @@ import Foundation
 let trackStart = Date(timeIntervalSince1970: 1_800_000_000)
 
 /// Metres per degree of latitude on the haversine sphere, so `north` gives exact distances.
-let metersPerDegreeLatitude = Double.pi * 6_371_000 / 180
+let metersPerDegreeLatitude = Double.pi * Geo.earthRadiusMeters / 180
 
 /// A fix `seconds` after `trackStart`, `meters` north of (0, 0).
 func fix(at seconds: Double, north meters: Double, accuracy: Double = 5) -> LocationSample {
@@ -142,13 +142,15 @@ final class GeoTests: XCTestCase {
         let now = trackStart.addingTimeInterval(5)
         XCTAssertTrue(SampleFilter.accepts(fix(at: 0, north: 0, accuracy: 20), now: now))
         XCTAssertTrue(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: 0), now: now))
+        XCTAssertTrue(SampleFilter.accepts(fix(at: 5.5, north: 0), now: now))
     }
 
-    func testFilterRejectsInaccurateInvalidOrStaleFixes() {
+    func testFilterRejectsInaccurateInvalidStaleOrFutureFixes() {
         let now = trackStart.addingTimeInterval(5)
         XCTAssertFalse(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: 20.5), now: now))
         XCTAssertFalse(SampleFilter.accepts(fix(at: 5, north: 0, accuracy: -1), now: now))
         XCTAssertFalse(SampleFilter.accepts(fix(at: -0.5, north: 0), now: now))
+        XCTAssertFalse(SampleFilter.accepts(fix(at: 65, north: 0), now: now))
     }
 
     func testSampleMakesRoutePoint() {
@@ -196,15 +198,21 @@ public struct LocationSample: Codable, Equatable, Sendable {
 ```swift
 import Foundation
 
-/// Decides whether a GPS fix is good enough to use: accurate to 20 m and at most 5 s old.
+/// Decides whether a GPS fix is good enough to use: accurate to 20 m, at most 5 s old, and not
+/// dated in the future. A future-dated fix would make every later fix look older than it and
+/// freeze distance for the rest of the run.
 public enum SampleFilter {
     public static let maxAccuracyMeters = 20.0
     public static let maxAgeSeconds: TimeInterval = 5
+    /// Allowance for a fix stamped slightly after the `now` its caller captured.
+    public static let maxClockSkewSeconds: TimeInterval = 1
 
     public static func accepts(_ sample: LocationSample, now: Date) -> Bool {
-        sample.horizontalAccuracy >= 0
+        let age = now.timeIntervalSince(sample.timestamp)
+        return sample.horizontalAccuracy >= 0
             && sample.horizontalAccuracy <= maxAccuracyMeters
-            && now.timeIntervalSince(sample.timestamp) <= maxAgeSeconds
+            && age >= -maxClockSkewSeconds
+            && age <= maxAgeSeconds
     }
 }
 ```
