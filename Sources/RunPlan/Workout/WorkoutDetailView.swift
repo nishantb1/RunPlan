@@ -52,10 +52,7 @@ struct WorkoutDetailView: View {
             .buttonStyle(.borderedProminent)
             .padding()
         }
-        .confirmationDialog("Where are you running?", isPresented: $choosingMode, titleVisibility: .visible) {
-            Button("Treadmill") { app.start(workout, mode: .treadmill) }
-            Button("Outdoor (coming with GPS tracking)") {}.disabled(true)
-        }
+        .startRunFlow(isChoosing: $choosingMode) { workout }
     }
 
     private func label(for step: Step) -> String {

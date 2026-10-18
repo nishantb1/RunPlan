@@ -5,6 +5,7 @@ import RunCore
 struct PlanView: View {
     @Environment(AppModel.self) private var app
     @State private var changingPlan = false
+    @State private var choosingFreeRun = false
 
     var body: some View {
         NavigationStack {
@@ -35,10 +36,14 @@ struct PlanView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Change plan") { changingPlan = true }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Free run") { choosingFreeRun = true }
+                }
             }
             .sheet(isPresented: $changingPlan) {
                 OnboardingView(changing: app.plan?.profile)
             }
+            .startRunFlow(isChoosing: $choosingFreeRun) { FreeRun.workout() }
         }
     }
 
