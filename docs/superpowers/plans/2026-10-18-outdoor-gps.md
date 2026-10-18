@@ -529,7 +529,8 @@ public struct PaceSmoother: Codable, Equatable, Sendable {
         entries.removeAll()
     }
 
-    /// Seconds per mile, or nil until the window holds at least 5 s and 5 m.
+    /// Seconds per mile, or nil until the window holds at least 5 s and 5 m. It does not age
+    /// by itself, so callers must ignore it once GPS has been lost.
     public var secondsPerMile: Int? {
         guard let first = entries.first, let last = entries.last else { return nil }
         let seconds = last.time.timeIntervalSince(first.time)
@@ -579,7 +580,8 @@ public struct SplitTracker: Codable, Equatable, Sendable {
         return new
     }
 
-    /// Completed splits plus the partial last one, when it covers at least 16 m.
+    /// Completed splits plus the partial last one, when it covers at least 16 m. Call `update`
+    /// with the same distance first.
     public func allSplits(totalMeters: Double, elapsed: TimeInterval) -> [Split] {
         let remaining = totalMeters - Double(completed.count) * Pace.metersPerMile
         guard remaining >= Self.minimumFinalMeters else { return completed }
@@ -777,9 +779,10 @@ git commit -m "Add pace cues and split wording"
 - [ ] A 400 m step at 3 m/s with a 600 s/mi target gives "ease off" at 35, 65, 95 and 125 s, then "step distance reached" once at 134 s; 100 m remain at 100 s
 - [ ] A free run at 3 m/s announces mile 1 in 536 s; the final splits at 545 s are mile 1 and a 25.656 m partial of 9 s
 - [ ] Paused fixes add nothing; signal is lost 10 s after the last used fix, and an inaccurate fix doesn't count
+- [ ] A pace measured before GPS was lost gives no pace cue afterwards
 - [ ] The tracker round-trips through JSON inside `ActiveWorkout`, and an `ActiveWorkout` saved without it still loads
 
-**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 5 tests, with 0 failures`
+**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 6 tests, with 0 failures`
 
 **Steps:**
 
@@ -839,6 +842,26 @@ final class OutdoorTrackerTests: XCTestCase {
         XCTAssertEqual(final.count, 2)
         XCTAssertEqual(final[1].distanceMeters, 25.656, accuracy: 0.001)
         XCTAssertEqual(final[1].durationSeconds, 9)
+    }
+
+    func testNoPaceCueFromAStalePaceAfterGPSIsLost() throws {
+        let engine = WorkoutEngine(planSteps: [
+            Step(kind: .run, measure: .time(seconds: 600), targetPaceSecondsPerMile: 600),
+        ])
+        engine.start(now: trackStart)
+        var tracker = OutdoorTracker()
+        var events: [OutdoorEvent] = []
+
+        for second in 0...20 {
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+            events += tracker.events(for: try XCTUnwrap(engine.snapshot(now: at(second))), now: at(second))
+        }
+        for second in 21...120 {
+            events += tracker.events(for: try XCTUnwrap(engine.snapshot(now: at(second))), now: at(second))
+        }
+
+        XCTAssertEqual(events, [])
+        XCTAssertFalse(tracker.hasSignal(now: at(120)))
     }
 
     func testPausedFixesAddNothing() {
@@ -928,6 +951,7 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     private var stepIndex: Int?
     private var stepStartMeters: Double = 0
     private var stepDistanceSent = false
+    private var splitCheckedMeters: Double = 0
     public private(set) var lastFixAt: Date?
 
     public init() {}
@@ -935,7 +959,8 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     public var totalMeters: Double { distance.totalMeters }
     public var route: [RoutePoint] { distance.route }
 
-    /// Seconds per mile over the last 15 seconds, or nil while there is too little data.
+    /// Seconds per mile over the last 15 seconds, or nil while there is too little data. It is
+    /// not cleared when fixes stop, so check `hasSignal(now:)` before showing it.
     public var currentPace: Int? { smoother.secondsPerMile }
 
     public func hasSignal(now: Date) -> Bool {
@@ -966,9 +991,15 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
             paceMonitor.reset()
         }
 
-        var events = splits
-            .update(totalMeters: distance.totalMeters, elapsed: snapshot.totalElapsed)
-            .map(OutdoorEvent.split)
+        var events: [OutdoorEvent] = []
+        // Only when distance has changed, so a mile crossed between two fixes is interpolated
+        // over the fix interval rather than over the last 0.25 s screen refresh.
+        if distance.totalMeters != splitCheckedMeters {
+            splitCheckedMeters = distance.totalMeters
+            events += splits
+                .update(totalMeters: distance.totalMeters, elapsed: snapshot.totalElapsed)
+                .map(OutdoorEvent.split)
+        }
 
         guard snapshot.state == .running else {
             paceMonitor.reset()
@@ -980,7 +1011,8 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
             stepDistanceSent = true
             events.append(.stepDistanceReached)
         }
-        if let cue = paceMonitor.update(pace: currentPace, target: snapshot.step.targetPaceSecondsPerMile, now: now) {
+        let pace = hasSignal(now: now) ? currentPace : nil
+        if let cue = paceMonitor.update(pace: pace, target: snapshot.step.targetPaceSecondsPerMile, now: now) {
             events.append(.paceCue(cue))
         }
         return events
@@ -1402,7 +1434,8 @@ final class WorkoutSessionModel: Identifiable {
     var isPaused: Bool { snapshot?.state == .paused }
     var durationSeconds: Int { Int((snapshot?.totalElapsed ?? 0).rounded()) }
     var distanceMeters: Double { tracker?.totalMeters ?? 0 }
-    var currentPace: Int? { tracker?.currentPace }
+    /// Hidden once GPS is lost, since the pace window does not age by itself.
+    var currentPace: Int? { hasSignal() ? tracker?.currentPace : nil }
     var route: [RoutePoint] { tracker?.route ?? [] }
 
     /// False outdoors when no usable fix has arrived for a while. Distance holds until it returns.

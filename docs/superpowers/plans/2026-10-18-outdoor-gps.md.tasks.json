@@ -19,7 +19,7 @@
     {
       "id": 2,
       "subject": "Task 3: Pace window and mile splits",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         1
       ],
@@ -107,5 +107,5 @@
       "description": "**Goal:** Record stage 4 decisions in the spec, add the outdoor checklist, verify and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec notes auto-pause moved to stage 5 and the GPS rules\n- [ ] README has outdoor checklist\n- [ ] Full TEST and BUILD pass\n- [ ] Installed and checklist handed to the user\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-outdoor-gps.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec notes auto-pause moved to stage 5 and the GPS rules\",\"README has outdoor checklist\",\"Full TEST and BUILD pass\",\"Installed and checklist handed to the user\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-18T20:30:23.000Z"
+  "lastUpdated": "2026-10-18T20:34:08.000Z"
 }

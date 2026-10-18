@@ -34,7 +34,8 @@ public struct SplitTracker: Codable, Equatable, Sendable {
         return new
     }
 
-    /// Completed splits plus the partial last one, when it covers at least 16 m.
+    /// Completed splits plus the partial last one, when it covers at least 16 m. Call `update`
+    /// with the same distance first.
     public func allSplits(totalMeters: Double, elapsed: TimeInterval) -> [Split] {
         let remaining = totalMeters - Double(completed.count) * Pace.metersPerMile
         guard remaining >= Self.minimumFinalMeters else { return completed }

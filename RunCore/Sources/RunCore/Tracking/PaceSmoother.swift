@@ -24,7 +24,8 @@ public struct PaceSmoother: Codable, Equatable, Sendable {
         entries.removeAll()
     }
 
-    /// Seconds per mile, or nil until the window holds at least 5 s and 5 m.
+    /// Seconds per mile, or nil until the window holds at least 5 s and 5 m. It does not age
+    /// by itself, so callers must ignore it once GPS has been lost.
     public var secondsPerMile: Int? {
         guard let first = entries.first, let last = entries.last else { return nil }
         let seconds = last.time.timeIntervalSince(first.time)
