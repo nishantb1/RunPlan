@@ -2446,7 +2446,8 @@ struct SummaryView: View {
                     }
                     if session.route.count > 1 {
                         Section("Route") {
-                            Map(initialPosition: .automatic) {
+                            // Zoom only, so a drag on the map scrolls the form instead of panning.
+                            Map(initialPosition: .automatic, interactionModes: [.zoom]) {
                                 MapPolyline(coordinates: session.route.map {
                                     CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
                                 })
@@ -2560,6 +2561,11 @@ that switches it on. A free run is one step with `StepMeasure.open`, which lasts
 ends it. Fixes older than 5 s or less accurate than 20 m are dropped, jumps faster than 10 m/s are
 ignored, the signal warning shows after 10 s without a usable fix, and a partial final split under
 16 m is dropped. The exact rules are in `docs/superpowers/plans/2026-10-18-outdoor-gps.md`.
+Changing the plan (onboarding prefilled from the current plan, then a confirmation) was added in
+stage 4 at the user's request, ahead of the stage 5 Settings screen. Notes for stage 5: the pace
+cue's 30 s timer restarts on one in-tolerance reading, so judge it outdoors and add a short grace
+period if cues rarely fire; and `RunStore.all()` decodes every route, so the History screen
+should load routes only when a run is opened.
 ```
 
 - [ ] **Step 2: Add the outdoor checklist to the README**

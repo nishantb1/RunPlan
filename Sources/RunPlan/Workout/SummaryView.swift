@@ -39,7 +39,8 @@ struct SummaryView: View {
                     }
                     if session.route.count > 1 {
                         Section("Route") {
-                            Map(initialPosition: .automatic) {
+                            // Zoom only, so a drag on the map scrolls the form instead of panning.
+                            Map(initialPosition: .automatic, interactionModes: [.zoom]) {
                                 MapPolyline(coordinates: session.route.map {
                                     CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
                                 })
