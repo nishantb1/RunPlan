@@ -1752,9 +1752,14 @@ final class AppModel {
         store.delete(WorkoutSessionModel.checkpointFile)
     }
 
-    /// Saves the finished session as a run, marks its planned workout done, and closes it.
+    /// Saves the finished session as a run, marks its planned workout done, and closes it. If the
+    /// run cannot be written, the session stays open so Save can be tried again.
     func save(_ record: RunRecord) {
-        try? runs.save(record)
+        do {
+            try runs.save(record)
+        } catch {
+            return
+        }
         records = runs.all()
         if let workoutID = record.workoutID {
             plan?.markCompleted(workoutID: workoutID, recordID: record.id)
