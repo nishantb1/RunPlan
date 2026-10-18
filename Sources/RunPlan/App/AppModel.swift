@@ -10,6 +10,8 @@ final class AppModel {
     let store: JSONStore
     private let runs: RunStore
     private let plans: PlanStore
+    /// Shared by the outdoor start sheet and outdoor sessions.
+    let location = LocationService()
 
     private(set) var records: [RunRecord] = []
     /// nil until onboarding has created one.
@@ -44,7 +46,7 @@ final class AppModel {
     }
 
     func start(_ workout: Workout, mode: RunMode) {
-        let session = WorkoutSessionModel(workout: workout, mode: mode, store: store)
+        let session = WorkoutSessionModel(workout: workout, mode: mode, store: store, location: location)
         self.session = session
         session.begin()
     }
@@ -52,7 +54,7 @@ final class AppModel {
     func resumePending() {
         guard let active = pendingResume else { return }
         pendingResume = nil
-        let session = WorkoutSessionModel(resuming: active, store: store)
+        let session = WorkoutSessionModel(resuming: active, store: store, location: location)
         self.session = session
         session.begin()
     }
