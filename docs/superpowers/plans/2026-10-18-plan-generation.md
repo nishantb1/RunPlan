@@ -357,7 +357,8 @@ public struct Profile: Codable, Equatable, Sendable {
 
     public var goal: Goal
     public var fitness: Fitness
-    /// Unique and sorted Monday first by `init`; the generator re-sorts, so later edits need not.
+    /// Unique and sorted Monday first by `init`; the generator re-sorts and removes duplicates, so
+    /// later edits need not.
     public var runDays: [Weekday]
     public var planWeeks: Int
     public var startDate: Date
