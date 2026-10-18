@@ -16,6 +16,7 @@ final class PlanTests: XCTestCase {
     }
 
     func testNextWorkoutSkipsMissedAndCompleted() {
+        // Week 1's workouts are on 3, 5 and 7 November; 3 November is missed by asking on the 4th.
         XCTAssertEqual(next(on: TestCalendar.date(2026, 11, 4))?.date, TestCalendar.date(2026, 11, 5))
 
         let first = plan.weeks[0].workouts[0]
@@ -52,5 +53,26 @@ final class PlanTests: XCTestCase {
         ])
         XCTAssertEqual(plan.workout(id: workout.id)?.title, "Moved intervals")
         XCTAssertEqual(plan.workouts.count, 24)
+    }
+
+    func testUpdateIntoAnotherWeeksDatesKeepsTheWorkoutInItsWeek() {
+        var workout = plan.weeks[0].workouts[0]
+        workout.date = TestCalendar.date(2026, 11, 12) // week 2's range
+        plan.update(workout)
+
+        XCTAssertEqual(plan.weeks[0].workouts.count, 3)
+        XCTAssertEqual(plan.weeks[0].workouts.last?.id, workout.id)
+        XCTAssertEqual(plan.weeks[1].workouts.count, 3)
+        XCTAssertEqual(next(on: TestCalendar.date(2026, 11, 11))?.date, TestCalendar.date(2026, 11, 12))
+    }
+
+    func testMarkCompletedKeepsWorkoutOrder() {
+        var sameDay = plan.weeks[0].workouts[1]
+        sameDay.date = plan.weeks[0].workouts[0].date
+        plan.update(sameDay)
+        let order = plan.weeks[0].workouts.map(\.id)
+
+        plan.markCompleted(workoutID: order[1], recordID: UUID())
+        XCTAssertEqual(plan.weeks[0].workouts.map(\.id), order)
     }
 }

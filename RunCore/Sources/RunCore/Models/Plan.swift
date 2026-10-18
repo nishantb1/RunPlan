@@ -21,6 +21,7 @@ public struct Plan: Codable, Equatable, Sendable {
 
     /// The earliest workout not yet completed that falls on or after the day containing
     /// `date`. Missed workouts on earlier days are skipped.
+    /// Assumes `calendar` uses the time zone the plan was generated in.
     public func nextWorkout(onOrAfter date: Date, calendar: Calendar = .current) -> Workout? {
         let day = calendar.startOfDay(for: date)
         return workouts
@@ -29,19 +30,22 @@ public struct Plan: Codable, Equatable, Sendable {
     }
 
     public mutating func markCompleted(workoutID: UUID, recordID: UUID) {
-        modifyWorkout(id: workoutID) { $0.recordID = recordID }
+        modifyWorkout(id: workoutID, resort: false) { $0.recordID = recordID }
     }
 
-    /// Replaces the workout with the same ID and keeps its week in date order.
+    /// Replaces the workout with the same ID and keeps its week in date order. The workout stays
+    /// in its original week even if its new date falls in another week's range.
     public mutating func update(_ workout: Workout) {
-        modifyWorkout(id: workout.id) { $0 = workout }
+        modifyWorkout(id: workout.id, resort: true) { $0 = workout }
     }
 
-    private mutating func modifyWorkout(id: UUID, _ change: (inout Workout) -> Void) {
+    private mutating func modifyWorkout(id: UUID, resort: Bool, _ change: (inout Workout) -> Void) {
         for weekIndex in weeks.indices {
             guard let index = weeks[weekIndex].workouts.firstIndex(where: { $0.id == id }) else { continue }
             change(&weeks[weekIndex].workouts[index])
-            weeks[weekIndex].workouts.sort { $0.date < $1.date }
+            if resort {
+                weeks[weekIndex].workouts.sort { $0.date < $1.date }
+            }
             return
         }
     }
