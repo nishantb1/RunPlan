@@ -767,24 +767,28 @@ public struct RunStore: Sendable {
         self.store = store
     }
 
+    /// Saves a finished run with its route. The route is written first, so the record is the
+    /// commit point: an interrupted save leaves at most an unlisted route file, never a listed
+    /// run that has lost its route. Records from `all()` carry no route, so do not save one
+    /// back as it is.
     public func save(_ record: RunRecord) throws {
-        var listed = record
-        listed.route = []
-        try store.save(listed, as: recordName(record.id))
         if !record.route.isEmpty {
             try store.save(record.route, as: routeName(record.id))
         }
+        var listed = record
+        listed.route = []
+        try store.save(listed, as: recordName(record.id))
     }
 
     /// Every readable record, newest first, without routes (see `route(for:)`).
     public func all() -> [RunRecord] {
         store.names(in: Self.folder)
             .filter { $0.hasSuffix(".json") }
-            .compactMap { store.load(RunRecord.self, from: "\(Self.folder)/\($0)") }
-            .map { record in
-                var listed = record
-                listed.route = []
-                return listed
+            .compactMap { name -> RunRecord? in
+                // Older records carry their route inside; drop it straight away.
+                guard var record = store.load(RunRecord.self, from: "\(Self.folder)/\(name)") else { return nil }
+                record.route = []
+                return record
             }
             .sorted { $0.startedAt > $1.startedAt }
     }

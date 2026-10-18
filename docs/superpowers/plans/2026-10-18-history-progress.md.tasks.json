@@ -28,7 +28,7 @@
     {
       "id": 3,
       "subject": "Task 4: Routes in their own files, and deleting stored data",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         2
       ],
@@ -80,5 +80,5 @@
       "description": "**Goal:** Spec note, README checklist, full verification and install.\n\n**Files:**\n- README.md\n- docs/superpowers/specs/2026-10-12-runplan-design.md\n\n**Acceptance Criteria:**\n- [ ] Spec stage 5 note\n- [ ] README stage 5 checklist\n- [ ] Full TEST and BUILD pass\n- [ ] Installed and checklist handed over\n\n**Verify:** clean swift test in RunCore via WSL and xtool dev build via WSL\n\nFull steps and code: docs/superpowers/plans/2026-10-18-history-progress.md\n\n```json:metadata\n{\"files\":[\"README.md\",\"docs/superpowers/specs/2026-10-12-runplan-design.md\"],\"verifyCommand\":\"clean swift test in RunCore via WSL and xtool dev build via WSL\",\"acceptanceCriteria\":[\"Spec stage 5 note\",\"README stage 5 checklist\",\"Full TEST and BUILD pass\",\"Installed and checklist handed over\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-10-18T23:54:12.000Z"
+  "lastUpdated": "2026-10-18T23:57:09.000Z"
 }
