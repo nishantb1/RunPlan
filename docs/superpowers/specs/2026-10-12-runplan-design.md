@@ -59,7 +59,7 @@ Tests/RunCoreTests/
 
 Implementation note (2026-10-12): `RunCore` is built as a nested package at `RunCore/` with its own
 `Package.swift`, not as a second target of the root package, because `swift test` on Linux would
-otherwise try to compile the SwiftUI target. The app icon is added in stage 5.
+otherwise try to compile the SwiftUI target. The app icon was added during stage 3 (`Resources/AppIcon.png`, drawn by `tools/make_icon.py`).
 
 `RunCore` is the only module with unit tests. It builds and tests on Linux with `swift test`, so
 its logic is verified without a phone. Conventions carry over from PaceKeeper: MVVM, `@Observable`,
