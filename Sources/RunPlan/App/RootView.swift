@@ -8,7 +8,13 @@ struct RootView: View {
     var body: some View {
         @Bindable var app = app
 
-        HomeView()
+        Group {
+            if app.plan == nil {
+                OnboardingView()
+            } else {
+                HomeView()
+            }
+        }
             .fullScreenCover(item: $app.session) { session in
                 SessionContainerView(session: session)
             }
