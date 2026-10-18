@@ -1841,8 +1841,9 @@ final class WorkoutSessionModel: Identifiable {
         )
         // A long run's route makes this about 1 MB, so encode and write it off the main actor.
         let store = self.store
+        let file = Self.checkpointFile
         Task.detached(priority: .utility) {
-            try? store.save(active, as: Self.checkpointFile)
+            try? store.save(active, as: file)
         }
     }
 
