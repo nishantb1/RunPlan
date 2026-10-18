@@ -22,8 +22,39 @@ final class AutoPauseDetectorTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(actions.map { $0.0 }, [36, 63])
+        XCTAssertEqual(actions.map { $0.0 }, [36, 64])
         XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume])
+    }
+
+    func testGPSJitterWhileStoppedDoesNotResume() {
+        var detector = AutoPauseDetector()
+        var running = true
+        var actions: [AutoPauseDetector.Action] = []
+        // Standing at 120 m from 30 s, with readings wandering 4 m either side.
+        let jitter: [Double] = [0, 4, 0, -4]
+
+        for second in 0...90 {
+            let north = second <= 30 ? Double(4 * second) : 120 + jitter[second % 4]
+            if let action = detector.update(fix(at: Double(second), north: north), isRunning: running) {
+                actions.append(action)
+                running = action == .resume
+            }
+        }
+
+        XCTAssertEqual(actions, [.pause])
+    }
+
+    func testManualResumeAfterStandingWaitsForFreshData() {
+        var detector = AutoPauseDetector()
+        for second in 0...20 {
+            _ = detector.update(fix(at: Double(second), north: 0), isRunning: false)
+        }
+
+        // The runner taps Resume and sets off at 2 m/s.
+        detector.manualOverride()
+        for second in 21...25 {
+            XCTAssertNil(detector.update(fix(at: Double(second), north: Double(2 * (second - 20))), isRunning: true))
+        }
     }
 
     func testNothingHappensWithTooLittleData() {

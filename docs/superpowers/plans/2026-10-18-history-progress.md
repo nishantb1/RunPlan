@@ -38,10 +38,12 @@ Rules: one type per file (small private helper views may share their screen's fi
 - **Voice cues off** silences step announcements, mile splits, pace cues and "Workout complete". Countdown beeps and haptics still play.
 - **Auto-pause** applies outdoors only. Over the last 6 s of used fixes, with at least 4 s of data:
   - while running, a speed below 0.5 m/s pauses the workout
-  - after an automatic pause, a speed above 1.2 m/s resumes it
-  - a pause or resume by hand cancels any automatic state, so a manual pause is never resumed automatically
+  - after an automatic pause, a speed above 1.2 m/s resumes it, as long as the distance moved is also more than the
+    two readings' combined accuracy (capped at 15 m), so GPS wander while standing does not resume it
+  - a pause or resume by hand cancels any automatic state and clears the window, so a manual pause is never resumed
+    automatically and a manual resume after standing is not paused again straight away
 
-  Both changes are spoken ("Auto-paused." / "Resumed.") and the live screen shows "Auto-paused". With a 4 m/s runner stopping at 30 s, it pauses at 36 s; setting off again at 3 m/s from 60 s resumes at 63 s (checked by hand).
+  Both changes are spoken ("Auto-paused." / "Resumed.") and the live screen shows "Auto-paused". With a 4 m/s runner stopping at 30 s, it pauses at 36 s; setting off again at 3 m/s from 60 s resumes at 64 s (checked by hand).
 - **Routes** are stored in `routes/<id>.json`, separately from `records/<id>.json`. `RunStore.all()` returns records with empty routes, and the run detail screen loads the route on demand. Records saved before this change keep their embedded route, which `route(for:)` still reads.
 - **Statistics:**
   - Weeks start on Monday.
@@ -462,11 +464,12 @@ git commit -m "Add run statistics and plan progress"
 - Create: `RunCore/Tests/RunCoreTests/AutoPauseDetectorTests.swift`
 
 **Acceptance Criteria:**
-- [ ] A runner at 4 m/s who stops at 30 s is paused once, at 36 s; setting off at 3 m/s from 60 s resumes once, at 63 s
+- [ ] A runner at 4 m/s who stops at 30 s is paused once, at 36 s; setting off at 3 m/s from 60 s resumes once, at 64 s
+- [ ] GPS readings wandering 4 m while stopped do not resume; a manual resume needs 4 s of fresh data before it can pause again
 - [ ] With under 4 s of fixes nothing happens
 - [ ] A manual pause (not running) is never resumed automatically, and `manualOverride()` cancels an automatic pause
 
-**Verify:** TEST with `--filter AutoPauseDetectorTests` → `Executed 3 tests, with 0 failures`
+**Verify:** TEST with `--filter AutoPauseDetectorTests` → `Executed 5 tests, with 0 failures`
 
 **Steps:**
 
@@ -499,8 +502,39 @@ final class AutoPauseDetectorTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(actions.map { $0.0 }, [36, 63])
+        XCTAssertEqual(actions.map { $0.0 }, [36, 64])
         XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume])
+    }
+
+    func testGPSJitterWhileStoppedDoesNotResume() {
+        var detector = AutoPauseDetector()
+        var running = true
+        var actions: [AutoPauseDetector.Action] = []
+        // Standing at 120 m from 30 s, with readings wandering 4 m either side.
+        let jitter: [Double] = [0, 4, 0, -4]
+
+        for second in 0...90 {
+            let north = second <= 30 ? Double(4 * second) : 120 + jitter[second % 4]
+            if let action = detector.update(fix(at: Double(second), north: north), isRunning: running) {
+                actions.append(action)
+                running = action == .resume
+            }
+        }
+
+        XCTAssertEqual(actions, [.pause])
+    }
+
+    func testManualResumeAfterStandingWaitsForFreshData() {
+        var detector = AutoPauseDetector()
+        for second in 0...20 {
+            _ = detector.update(fix(at: Double(second), north: 0), isRunning: false)
+        }
+
+        // The runner taps Resume and sets off at 2 m/s.
+        detector.manualOverride()
+        for second in 21...25 {
+            XCTAssertNil(detector.update(fix(at: Double(second), north: Double(2 * (second - 20))), isRunning: true))
+        }
     }
 
     func testNothingHappensWithTooLittleData() {
@@ -545,7 +579,9 @@ Expected: build errors such as `cannot find 'AutoPauseDetector' in scope`.
 import Foundation
 
 /// Decides when an outdoor run should pause because the runner has stopped, and resume when
-/// they set off again, from straight-line speed over the last 6 seconds of fixes.
+/// they set off again, from straight-line speed over the last 6 seconds of fixes. Straight line
+/// is used because jitter adds to a path length; the cost is that a very sharp turnaround can
+/// pause briefly, which corrects itself a few seconds later.
 public struct AutoPauseDetector: Codable, Equatable, Sendable {
     public enum Action: String, Codable, Sendable {
         case pause
@@ -556,8 +592,12 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
     static let minimumSpanSeconds: TimeInterval = 4
     /// Slower than this while running means the runner has stopped.
     static let stoppedMetersPerSecond = 0.5
-    /// Faster than this after an automatic pause means they have set off again.
+    /// Faster than this after an automatic pause means they have set off again. The gap between
+    /// the two thresholds stops GPS jitter flipping between paused and running.
     static let movingMetersPerSecond = 1.2
+    /// Most of a reading's accuracy radius that a resume must clear, so GPS wander while
+    /// standing still never resumes the run.
+    static let maxNoiseFloorMeters = 15.0
 
     private var fixes: [LocationSample] = []
     public private(set) var isAutoPaused = false
@@ -572,23 +612,27 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
         guard let first = fixes.first else { return nil }
         let span = sample.timestamp.timeIntervalSince(first.timestamp)
         guard span >= Self.minimumSpanSeconds else { return nil }
-        let speed = Geo.distance(first, sample) / span
+        let distance = Geo.distance(first, sample)
+        let speed = distance / span
+        let noiseFloor = min(first.horizontalAccuracy + sample.horizontalAccuracy, Self.maxNoiseFloorMeters)
 
         if isRunning, !isAutoPaused, speed < Self.stoppedMetersPerSecond {
             isAutoPaused = true
             return .pause
         }
-        if isAutoPaused, speed > Self.movingMetersPerSecond {
+        if isAutoPaused, speed > Self.movingMetersPerSecond, distance > noiseFloor {
             isAutoPaused = false
             return .resume
         }
         return nil
     }
 
-    /// Call when the runner pauses or resumes by hand, so a manual pause is never resumed
-    /// automatically.
+    /// Call when the runner pauses or resumes by hand. A manual pause is then never resumed
+    /// automatically, and after a manual resume the detector waits for fresh fixes rather than
+    /// judging the runner by the seconds they spent standing still.
     public mutating func manualOverride() {
         isAutoPaused = false
+        fixes.removeAll()
     }
 }
 ```
