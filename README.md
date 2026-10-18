@@ -45,12 +45,12 @@ changes after a reboot, rerun the `netsh` line with the new one.
 
 ## On-device checklist (guided workouts)
 
-- Start the sample workout in Treadmill mode: the step and speed are spoken.
+- Start a planned workout in Treadmill mode: the step and speed are spoken.
 - Beeps play at 3, 2 and 1 seconds before each change, over music.
 - Lock the phone for two steps: cues keep playing and the screen is correct on unlock.
 - Pause, skip forward, skip back and end all behave.
 - Force-quit mid-workout and reopen: the app offers to resume, paused.
-- Save the summary: the run appears under Recent runs after relaunch.
+- Save the summary: the run appears in the Runs tab after relaunch.
 
 ## On-device checklist (plan generation)
 
