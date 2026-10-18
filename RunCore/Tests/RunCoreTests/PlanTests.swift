@@ -57,13 +57,13 @@ final class PlanTests: XCTestCase {
 
     func testUpdateIntoAnotherWeeksDatesKeepsTheWorkoutInItsWeek() {
         var workout = plan.weeks[0].workouts[0]
-        workout.date = TestCalendar.date(2026, 11, 12) // week 2's range
+        workout.date = TestCalendar.date(2026, 11, 11) // week 2's range, a day with no run
         plan.update(workout)
 
         XCTAssertEqual(plan.weeks[0].workouts.count, 3)
         XCTAssertEqual(plan.weeks[0].workouts.last?.id, workout.id)
         XCTAssertEqual(plan.weeks[1].workouts.count, 3)
-        XCTAssertEqual(next(on: TestCalendar.date(2026, 11, 11))?.date, TestCalendar.date(2026, 11, 12))
+        XCTAssertEqual(next(on: TestCalendar.date(2026, 11, 11))?.id, workout.id)
     }
 
     func testMarkCompletedKeepsWorkoutOrder() {
