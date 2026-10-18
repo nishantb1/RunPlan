@@ -92,6 +92,31 @@ final class OutdoorTrackerTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(tracker.stepMetersRemaining(for: snapshot)), 400, accuracy: 1e-6)
     }
 
+    func testSplitsStayPositiveAfterSkipBack() throws {
+        let engine = WorkoutEngine(planSteps: [
+            Step(kind: .run, measure: .time(seconds: 600)),
+            Step(kind: .run, measure: .time(seconds: 3000)),
+        ])
+        engine.start(now: trackStart)
+        var tracker = OutdoorTracker()
+        var splits: [Split] = []
+
+        for second in 0...1100 {
+            if second == 700 {
+                // Skip back from the second step rewinds plan progress, not the run's clock.
+                engine.skipBack(now: at(second))
+                tracker.restartStep()
+            }
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+            let snapshot = try XCTUnwrap(engine.snapshot(now: at(second)))
+            for case .split(let split) in tracker.events(for: snapshot, now: at(second)) {
+                splits.append(split)
+            }
+        }
+
+        XCTAssertEqual(splits.map(\.durationSeconds), [536, 536])
+    }
+
     func testPausedFixesAddNothing() {
         var tracker = OutdoorTracker()
         tracker.record(fix(at: 0, north: 0), now: at(0), counting: true)
@@ -130,7 +155,7 @@ final class OutdoorTrackerTests: XCTestCase {
     }
 }
 
-/// A plain workout for checkpoint tests (free runs arrive in Task 6).
+/// A plain timed workout for checkpoint tests.
 private enum FreeRunlessWorkout {
     static func make() -> Workout {
         Workout(date: trackStart, kind: .easy, title: "Easy", steps: [Step(kind: .run, measure: .time(seconds: 600))])

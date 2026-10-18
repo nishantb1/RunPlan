@@ -40,12 +40,16 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         manager.requestWhenInUseAuthorization()
     }
 
-    /// Starts updates, including in the background. Does nothing without permission or when
-    /// already running.
-    func start() {
-        guard isAuthorized, !isUpdating else { return }
-        manager.allowsBackgroundLocationUpdates = true
-        manager.showsBackgroundLocationIndicator = true
+    /// Starts updates. The start sheet only needs them in the foreground; a running workout asks
+    /// for background updates too, so recording continues with the screen locked. Does nothing
+    /// without permission, and is safe to call again (for example to add background updates).
+    func start(inBackground: Bool) {
+        guard isAuthorized else { return }
+        if inBackground, !manager.allowsBackgroundLocationUpdates {
+            manager.allowsBackgroundLocationUpdates = true
+            manager.showsBackgroundLocationIndicator = true
+        }
+        guard !isUpdating else { return }
         manager.startUpdatingLocation()
         isUpdating = true
     }

@@ -23,7 +23,10 @@ public final class WorkoutEngine {
         public let elapsedInStep: TimeInterval
         public let remainingInStep: TimeInterval?
         public let totalElapsed: TimeInterval
-        /// Sum of timed step durations. Distance steps do not contribute.
+        /// Time actually spent, excluding pauses. Unlike `totalElapsed`, which tracks progress
+        /// through the plan, it never goes back on skip back, so splits and pace use it.
+        public let activeElapsed: TimeInterval
+        /// Sum of timed step durations. Distance and open steps do not contribute.
         public let totalPlanned: TimeInterval
         public let nextStep: FlatStep?
     }
@@ -37,6 +40,9 @@ public final class WorkoutEngine {
         public var accumulatedPause: TimeInterval = 0
         /// Elapsed time from steps before the current phase.
         public var bankedElapsed: TimeInterval = 0
+        /// Time actually spent before the current phase, kept through skip back. nil in
+        /// checkpoints saved before it existed.
+        public var activeBanked: TimeInterval?
         public var savedAt: Date?
 
         public init() {}
@@ -79,6 +85,7 @@ public final class WorkoutEngine {
     public func start(now: Date = Date()) {
         guard core.state == .notStarted, !steps.isEmpty else { return }
         core = Checkpoint()
+        core.activeBanked = 0
         core.phaseStartTime = now
         core.state = .running
     }
@@ -107,7 +114,9 @@ public final class WorkoutEngine {
         guard let resolution = currentResolution(now: now) else { return }
 
         let absoluteIndex = core.phaseStartIndex + resolution.index
-        core.bankedElapsed += phaseElapsed(now: now)
+        let elapsedInPhase = phaseElapsed(now: now)
+        core.activeBanked = bankedActiveTime + elapsedInPhase
+        core.bankedElapsed += elapsedInPhase
 
         if absoluteIndex >= steps.count - 1 {
             // Keep the banked total readable after finishing.
@@ -131,6 +140,7 @@ public final class WorkoutEngine {
         let absoluteIndex = core.phaseStartIndex + resolution.index
         let targetIndex = max(0, absoluteIndex - 1)
 
+        core.activeBanked = bankedActiveTime + phaseElapsed(now: now)
         core.bankedElapsed = plannedDuration(before: targetIndex)
         startPhase(at: targetIndex, now: now)
     }
@@ -149,6 +159,7 @@ public final class WorkoutEngine {
                 elapsedInStep: 0,
                 remainingInStep: 0,
                 totalElapsed: core.bankedElapsed,
+                activeElapsed: bankedActiveTime,
                 totalPlanned: totalPlanned,
                 nextStep: nil
             )
@@ -167,12 +178,19 @@ public final class WorkoutEngine {
             elapsedInStep: resolution.elapsedInStep,
             remainingInStep: resolution.remainingInStep,
             totalElapsed: core.bankedElapsed + phaseElapsed(now: now),
+            activeElapsed: bankedActiveTime + phaseElapsed(now: now),
             totalPlanned: totalPlanned,
             nextStep: absoluteIndex + 1 < steps.count ? steps[absoluteIndex + 1] : nil
         )
     }
 
     // MARK: - Private helpers
+
+    /// Active time banked before the current phase. Older checkpoints fall back to the plan's
+    /// banked time, which matches it unless the runner skipped back.
+    private var bankedActiveTime: TimeInterval {
+        core.activeBanked ?? core.bankedElapsed
+    }
 
     private func startPhase(at index: Int, now: Date) {
         let wasPaused = core.state == .paused

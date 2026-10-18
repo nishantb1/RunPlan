@@ -60,7 +60,8 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     var isPaused: Bool { snapshot?.state == .paused }
-    var durationSeconds: Int { Int((snapshot?.totalElapsed ?? 0).rounded()) }
+    /// Time actually run, excluding pauses; skip back does not shorten it.
+    var durationSeconds: Int { Int((snapshot?.activeElapsed ?? 0).rounded()) }
     var distanceMeters: Double { tracker?.totalMeters ?? 0 }
     /// Hidden once GPS is lost, since the pace window does not age by itself.
     var currentPace: Int? { hasSignal() ? tracker?.currentPace : nil }
@@ -117,7 +118,7 @@ final class WorkoutSessionModel: Identifiable {
     /// restarts GPS in case location permission was turned off and on again during the run.
     func handleForeground() {
         if !isFinished {
-            location?.start()
+            location?.start(inBackground: true)
         }
         refresh()
     }
@@ -127,7 +128,7 @@ final class WorkoutSessionModel: Identifiable {
         location.onSample = { [weak self] sample in
             self?.record(sample)
         }
-        location.start()
+        location.start(inBackground: true)
     }
 
     /// Records a fix and refreshes straight away, so splits and distance steps are handled
@@ -174,7 +175,7 @@ final class WorkoutSessionModel: Identifiable {
         self.snapshot = snapshot
 
         if snapshot.state == .finished {
-            finish(elapsed: snapshot.totalElapsed)
+            finish(elapsed: snapshot.activeElapsed)
         } else {
             saveCheckpoint(force: forceCheckpoint)
         }

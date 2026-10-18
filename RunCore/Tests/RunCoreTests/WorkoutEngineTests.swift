@@ -81,6 +81,28 @@ final class WorkoutEngineTests: XCTestCase {
         XCTAssertEqual(s.elapsedInStep, 10)
     }
 
+    func testSkipBackKeepsActiveTimeGoing() throws {
+        let engine = makeEngine()
+        engine.start(now: t0)
+
+        // 400 s is 10 s into the first walk; skip back restarts the first run.
+        engine.skipBack(now: t0.addingTimeInterval(400))
+        let s = try XCTUnwrap(engine.snapshot(now: t0.addingTimeInterval(410)))
+        XCTAssertEqual(s.stepIndex, 1)
+        XCTAssertEqual(s.totalElapsed, 310)
+        XCTAssertEqual(s.activeElapsed, 410)
+    }
+
+    func testActiveTimeExcludesPausesAndSurvivesAdvance() throws {
+        let engine = makeEngine()
+        engine.start(now: t0)
+        engine.pause(now: t0.addingTimeInterval(100))
+        engine.resume(now: t0.addingTimeInterval(160))
+        engine.advanceToNextStep(now: t0.addingTimeInterval(200))
+        let s = try XCTUnwrap(engine.snapshot(now: t0.addingTimeInterval(210)))
+        XCTAssertEqual(s.activeElapsed, 150)
+    }
+
     func testSkipBackGoesToPreviousStep() throws {
         let engine = makeEngine()
         engine.start(now: t0)

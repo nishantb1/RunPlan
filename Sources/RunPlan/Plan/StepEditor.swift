@@ -20,7 +20,7 @@ struct StepEditor: View {
             case .distance(let meters):
                 Stepper(String(format: "%.2f mi", Pace.miles(fromMeters: meters)), value: distanceMiles, in: 0.05...26.2, step: 0.05)
             case .open:
-                Text("Until you end the run").foregroundStyle(.secondary)
+                Text("Until you end it").foregroundStyle(.secondary)
             }
 
             Toggle("Speed target", isOn: hasTarget)

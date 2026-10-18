@@ -47,6 +47,7 @@ The numbers below were checked in Python before writing the tests.
 - **GPS lost:** with no used fix for 10 s, the live screen shows a warning. Time keeps running and distance holds.
 - **Free run:** one run step with a new `StepMeasure.open`, which lasts until the runner ends the workout. A free run is never in the plan, so its record's `workoutID` is nil. This is decided in the summary by checking whether the plan contains the workout.
 - **Start outdoors:** the start sheet asks for when-in-use location permission and waits for a fix that passes the filter. If location is denied, it explains why and offers treadmill mode.
+- **Clocks:** splits, the summary time and average pace use the engine's `activeElapsed`, which counts time actually run and never goes back on skip back; `totalElapsed` still drives plan progress. `FlatStep`'s comments describe open steps alongside distance steps.
 - **Not in this stage:** auto-pause. The spec lists it under Settings, so it moves to stage 5 with the Settings screen. Task 12 records this in the spec.
 
 ## File structure
@@ -795,7 +796,7 @@ git commit -m "Add pace cues and split wording"
 - [ ] A pace measured before GPS was lost gives no pace cue afterwards
 - [ ] The tracker round-trips through JSON inside `ActiveWorkout`, and an `ActiveWorkout` saved without it still loads
 
-**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 7 tests, with 0 failures`
+**Verify:** TEST with `--filter OutdoorTrackerTests` → `Executed 8 tests, with 0 failures`
 
 **Steps:**
 
@@ -898,6 +899,31 @@ final class OutdoorTrackerTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(tracker.stepMetersRemaining(for: snapshot)), 400, accuracy: 1e-6)
     }
 
+    func testSplitsStayPositiveAfterSkipBack() throws {
+        let engine = WorkoutEngine(planSteps: [
+            Step(kind: .run, measure: .time(seconds: 600)),
+            Step(kind: .run, measure: .time(seconds: 3000)),
+        ])
+        engine.start(now: trackStart)
+        var tracker = OutdoorTracker()
+        var splits: [Split] = []
+
+        for second in 0...1100 {
+            if second == 700 {
+                // Skip back from the second step rewinds plan progress, not the run's clock.
+                engine.skipBack(now: at(second))
+                tracker.restartStep()
+            }
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+            let snapshot = try XCTUnwrap(engine.snapshot(now: at(second)))
+            for case .split(let split) in tracker.events(for: snapshot, now: at(second)) {
+                splits.append(split)
+            }
+        }
+
+        XCTAssertEqual(splits.map(\.durationSeconds), [536, 536])
+    }
+
     func testPausedFixesAddNothing() {
         var tracker = OutdoorTracker()
         tracker.record(fix(at: 0, north: 0), now: at(0), counting: true)
@@ -936,7 +962,7 @@ final class OutdoorTrackerTests: XCTestCase {
     }
 }
 
-/// A plain workout for checkpoint tests (free runs arrive in Task 6).
+/// A plain timed workout for checkpoint tests.
 private enum FreeRunlessWorkout {
     static func make() -> Workout {
         Workout(date: trackStart, kind: .easy, title: "Easy", steps: [Step(kind: .run, measure: .time(seconds: 600))])
@@ -1032,7 +1058,7 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
         if distance.totalMeters != splitCheckedMeters {
             splitCheckedMeters = distance.totalMeters
             events += splits
-                .update(totalMeters: distance.totalMeters, elapsed: snapshot.totalElapsed)
+                .update(totalMeters: distance.totalMeters, elapsed: snapshot.activeElapsed)
                 .map(OutdoorEvent.split)
         }
 
@@ -1456,7 +1482,7 @@ In `Sources/RunPlan/Plan/StepEditor.swift`, in the `switch step.measure` in `bod
 
 ```swift
             case .open:
-                Text("Until you end the run").foregroundStyle(.secondary)
+                Text("Until you end it").foregroundStyle(.secondary)
 ```
 
 - [ ] **Step 5: Run the tests and build**
@@ -1549,12 +1575,16 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         manager.requestWhenInUseAuthorization()
     }
 
-    /// Starts updates, including in the background. Does nothing without permission or when
-    /// already running.
-    func start() {
-        guard isAuthorized, !isUpdating else { return }
-        manager.allowsBackgroundLocationUpdates = true
-        manager.showsBackgroundLocationIndicator = true
+    /// Starts updates. The start sheet only needs them in the foreground; a running workout asks
+    /// for background updates too, so recording continues with the screen locked. Does nothing
+    /// without permission, and is safe to call again (for example to add background updates).
+    func start(inBackground: Bool) {
+        guard isAuthorized else { return }
+        if inBackground, !manager.allowsBackgroundLocationUpdates {
+            manager.allowsBackgroundLocationUpdates = true
+            manager.showsBackgroundLocationIndicator = true
+        }
+        guard !isUpdating else { return }
         manager.startUpdatingLocation()
         isUpdating = true
     }
@@ -1699,7 +1729,8 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     var isPaused: Bool { snapshot?.state == .paused }
-    var durationSeconds: Int { Int((snapshot?.totalElapsed ?? 0).rounded()) }
+    /// Time actually run, excluding pauses; skip back does not shorten it.
+    var durationSeconds: Int { Int((snapshot?.activeElapsed ?? 0).rounded()) }
     var distanceMeters: Double { tracker?.totalMeters ?? 0 }
     /// Hidden once GPS is lost, since the pace window does not age by itself.
     var currentPace: Int? { hasSignal() ? tracker?.currentPace : nil }
@@ -1756,7 +1787,7 @@ final class WorkoutSessionModel: Identifiable {
     /// restarts GPS in case location permission was turned off and on again during the run.
     func handleForeground() {
         if !isFinished {
-            location?.start()
+            location?.start(inBackground: true)
         }
         refresh()
     }
@@ -1766,7 +1797,7 @@ final class WorkoutSessionModel: Identifiable {
         location.onSample = { [weak self] sample in
             self?.record(sample)
         }
-        location.start()
+        location.start(inBackground: true)
     }
 
     /// Records a fix and refreshes straight away, so splits and distance steps are handled
@@ -1813,7 +1844,7 @@ final class WorkoutSessionModel: Identifiable {
         self.snapshot = snapshot
 
         if snapshot.state == .finished {
-            finish(elapsed: snapshot.totalElapsed)
+            finish(elapsed: snapshot.activeElapsed)
         } else {
             saveCheckpoint(force: forceCheckpoint)
         }
@@ -2049,7 +2080,7 @@ struct OutdoorStartView: View {
         if app.location.needsPermission {
             app.location.requestPermission()
         } else {
-            app.location.start()
+            app.location.start(inBackground: false)
         }
     }
 
@@ -2268,9 +2299,17 @@ struct LiveWorkoutView: View {
         }
     }
 
+    /// Re-checked every second: while paused nothing else redraws the screen, and the signal can
+    /// still be lost.
     private var outdoorStats: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            outdoorStatsContent(now: context.date)
+        }
+    }
+
+    private func outdoorStatsContent(now: Date) -> some View {
         VStack(spacing: 8) {
-            if !session.hasSignal() {
+            if !session.hasSignal(now: now) {
                 Label("GPS signal lost. Distance is paused.", systemImage: "location.slash")
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
@@ -2310,7 +2349,7 @@ struct LiveWorkoutView: View {
                 .monospacedDigit()
                 .foregroundStyle(.gray)
         } else {
-            Text("\(Pace.clock(Int(snapshot.totalElapsed))) elapsed")
+            Text("\(Pace.clock(Int(snapshot.activeElapsed))) elapsed")
                 .font(.headline)
                 .monospacedDigit()
                 .foregroundStyle(.gray)

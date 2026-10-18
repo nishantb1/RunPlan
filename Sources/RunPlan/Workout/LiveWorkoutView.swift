@@ -72,9 +72,17 @@ struct LiveWorkoutView: View {
         }
     }
 
+    /// Re-checked every second: while paused nothing else redraws the screen, and the signal can
+    /// still be lost.
     private var outdoorStats: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            outdoorStatsContent(now: context.date)
+        }
+    }
+
+    private func outdoorStatsContent(now: Date) -> some View {
         VStack(spacing: 8) {
-            if !session.hasSignal() {
+            if !session.hasSignal(now: now) {
                 Label("GPS signal lost. Distance is paused.", systemImage: "location.slash")
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
@@ -114,7 +122,7 @@ struct LiveWorkoutView: View {
                 .monospacedDigit()
                 .foregroundStyle(.gray)
         } else {
-            Text("\(Pace.clock(Int(snapshot.totalElapsed))) elapsed")
+            Text("\(Pace.clock(Int(snapshot.activeElapsed))) elapsed")
                 .font(.headline)
                 .monospacedDigit()
                 .foregroundStyle(.gray)

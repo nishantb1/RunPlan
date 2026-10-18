@@ -70,8 +70,12 @@ changes after a reboot, rerun the `netsh` line with the new one.
   enables Start once it is ready.
 - With location turned off in Settings: the start sheet explains and offers treadmill mode.
 - Run with the phone locked: distance and the route keep recording, and cues keep playing.
-- A planned distance step (the time trial) ends by itself when its distance is covered.
-- Each mile is announced with its split, and running well off a target pace gives a pace cue.
+- A distance step ends by itself when its distance is covered. To try it without the whole time
+  trial, open the time trial, tap Edit and shorten its run step to about 0.25 mi.
+- Each mile is announced with its split.
+- Running more than 15 s/mi off a step's target pace for 30 s gives "Pick up the pace" or "Ease
+  off the pace" (use a workout with a speed target, or add one in Edit). If cues rarely fire
+  when you are clearly off pace, note it: GPS noise may be resetting the 30 s timer.
 - Walk somewhere with no signal for over 10 s: the live screen shows the GPS warning and distance
   holds.
 - Force-quit mid-run and reopen: resuming keeps the distance and route so far.

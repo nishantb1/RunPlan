@@ -113,7 +113,7 @@ struct OutdoorStartView: View {
         if app.location.needsPermission {
             app.location.requestPermission()
         } else {
-            app.location.start()
+            app.location.start(inBackground: false)
         }
     }
 

@@ -61,7 +61,7 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
         if distance.totalMeters != splitCheckedMeters {
             splitCheckedMeters = distance.totalMeters
             events += splits
-                .update(totalMeters: distance.totalMeters, elapsed: snapshot.totalElapsed)
+                .update(totalMeters: distance.totalMeters, elapsed: snapshot.activeElapsed)
                 .map(OutdoorEvent.split)
         }
 
