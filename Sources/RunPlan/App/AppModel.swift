@@ -2,15 +2,18 @@ import Foundation
 import Observation
 import RunCore
 
-/// App-wide state: run history, the workout on offer, and the session in progress.
+/// App-wide state: the training plan, run history, and the session in progress.
 @MainActor
 @Observable
 final class AppModel {
 
     let store: JSONStore
     private let runs: RunStore
+    private let plans: PlanStore
 
     private(set) var records: [RunRecord] = []
+    /// nil until onboarding has created one.
+    private(set) var plan: Plan?
     let todaysWorkout: Workout = SampleWorkouts.runWalk()
 
     /// Non-nil while a workout is on screen.
@@ -23,8 +26,22 @@ final class AppModel {
             ?? FileManager.default.temporaryDirectory
         store = JSONStore(directory: documents)
         runs = RunStore(store: store)
+        plans = PlanStore(store: store)
         records = runs.all()
+        plan = plans.load()
         pendingResume = store.load(ActiveWorkout.self, from: WorkoutSessionModel.checkpointFile)
+    }
+
+    /// Generates a plan from onboarding answers and saves it.
+    func createPlan(from profile: Profile) {
+        plan = PlanGenerator.generate(profile)
+        persistPlan()
+    }
+
+    /// Saves an edited planned workout.
+    func update(_ workout: Workout) {
+        plan?.update(workout)
+        persistPlan()
     }
 
     func start(_ workout: Workout, mode: RunMode) {
@@ -46,15 +63,24 @@ final class AppModel {
         store.delete(WorkoutSessionModel.checkpointFile)
     }
 
-    /// Saves the finished session as a run and closes it.
+    /// Saves the finished session as a run, marks its planned workout done, and closes it.
     func save(_ record: RunRecord) {
         try? runs.save(record)
         records = runs.all()
+        if let workoutID = record.workoutID {
+            plan?.markCompleted(workoutID: workoutID, recordID: record.id)
+            persistPlan()
+        }
         closeSession()
     }
 
     func closeSession() {
         session?.releaseAudio()
         session = nil
+    }
+
+    private func persistPlan() {
+        guard let plan else { return }
+        try? plans.save(plan)
     }
 }
