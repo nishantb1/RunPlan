@@ -124,6 +124,12 @@ converted to mph, rounded to 0.1.
 Storage is three files: `profile.json`, `plan.json`, and `records/<id>.json` per run, so a long
 history never rewrites one large file.
 
+Implementation note (stage 3, 2026-10-18): the profile is stored inside `plan.json` rather than
+in its own `profile.json`, since a plan is always generated from exactly one profile.
+`Profile.daysPerWeek` is derived from `runDays`, and the fixed `units` field is omitted until
+kilometres are supported. The generator's exact numbers (walk-run ladder, session lengths, caps)
+are in `docs/superpowers/plans/2026-10-18-plan-generation.md`.
+
 ## Plan generator
 
 `PlanGenerator.generate(profile) -> Plan` is a pure, deterministic function.

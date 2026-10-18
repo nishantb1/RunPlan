@@ -51,3 +51,13 @@ changes after a reboot, rerun the `netsh` line with the new one.
 - Pause, skip forward, skip back and end all behave.
 - Force-quit mid-workout and reopen: the app offers to resume, paused.
 - Save the summary: the run appears under Recent runs after relaunch.
+
+## On-device checklist (plan generation)
+
+- Delete and reinstall the app (or start without a plan): onboarding appears.
+- A 5K goal of 20:00 for a new runner shows the ambitious-goal warning, and "Train to finish
+  instead" clears it.
+- Save a plan: the Plan tab shows Today or Next on top and every week below.
+- Open a workout, tap Edit, change its date and one step's speed, Save: the change shows, and
+  survives a relaunch.
+- Run a planned workout and save it: it gets a done mark and the week's count goes up.
