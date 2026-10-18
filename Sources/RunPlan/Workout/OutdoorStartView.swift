@@ -38,41 +38,54 @@ struct OutdoorStartView: View {
         .interactiveDismissDisabled()
     }
 
-    private var hasFix: Bool {
+    private func hasFix(at now: Date) -> Bool {
         guard let latest = app.location.latest else { return false }
-        return SampleFilter.accepts(latest, now: Date())
+        return SampleFilter.accepts(latest, now: now)
     }
 
+    /// Re-evaluated every second as well as on each fix, so a fix that goes stale after GPS was
+    /// ready (stepping indoors, say) disables Start again.
     private var waitingContent: some View {
-        VStack(spacing: 16) {
-            if hasFix {
-                Image(systemName: "location.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.green)
-                Text("GPS ready").font(.title2.bold())
-            } else {
-                ProgressView().controlSize(.large)
-                Text("Waiting for GPS…").font(.title2.bold())
-                Text(accuracyText)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let ready = hasFix(at: context.date)
+            VStack(spacing: 16) {
+                if ready {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.green)
+                    Text("GPS ready").font(.title2.bold())
+                } else {
+                    ProgressView().controlSize(.large)
+                    Text("Waiting for GPS…").font(.title2.bold())
+                    Text(accuracyText(at: context.date))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    choose(.outdoor)
+                } label: {
+                    Text("Start").font(.title3.bold()).frame(maxWidth: .infinity).padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!ready)
+                if app.location.isReducedAccuracy {
+                    Button("Open Settings") { openSettings() }
+                }
+                Button("Use treadmill instead") { choose(.treadmill) }
             }
-            Button {
-                choose(.outdoor)
-            } label: {
-                Text("Start").font(.title3.bold()).frame(maxWidth: .infinity).padding(.vertical, 8)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!hasFix)
         }
     }
 
-    private var accuracyText: String {
+    private func accuracyText(at now: Date) -> String {
         if app.location.isReducedAccuracy {
             return "Precise Location is off for RunPlan. Turn it on in Settings so distance and pace can be measured."
         }
         guard let latest = app.location.latest, latest.horizontalAccuracy >= 0 else {
             return "Head outside with a clear view of the sky."
+        }
+        if latest.horizontalAccuracy <= SampleFilter.maxAccuracyMeters {
+            // Accurate enough but too old: CoreLocation often hands over a cached fix first.
+            return "Waiting for a fresh fix…"
         }
         return "Accuracy \(Int(latest.horizontalAccuracy)) m. Ready at \(Int(SampleFilter.maxAccuracyMeters)) m."
     }
@@ -86,11 +99,7 @@ struct OutdoorStartView: View {
             Text("Outdoor runs need your location to measure distance and pace. Turn it on in Settings, or do this run in treadmill mode.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    openURL(url)
-                }
-            }
+            Button("Open Settings") { openSettings() }
             Button {
                 choose(.treadmill)
             } label: {
@@ -108,7 +117,17 @@ struct OutdoorStartView: View {
         }
     }
 
+    private func openSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            openURL(url)
+        }
+    }
+
     private func choose(_ mode: RunMode) {
+        // Re-check at the tap: the fix may have gone stale since the last refresh.
+        if mode == .outdoor, !hasFix(at: Date()) {
+            return
+        }
         if mode == .treadmill {
             app.location.stop()
         }
