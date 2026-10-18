@@ -14,6 +14,16 @@ final class PaceCueTests: XCTestCase {
         XCTAssertEqual(monitor.update(pace: 620, target: 600, now: at(60)), .speedUp)
     }
 
+    func testFifteenSecondsOffIsWithinTolerance() {
+        var monitor = PaceCueMonitor()
+        for second in [0.0, 30, 60] {
+            XCTAssertNil(monitor.update(pace: 615, target: 600, now: at(second)))
+        }
+        var justOutside = PaceCueMonitor()
+        _ = justOutside.update(pace: 616, target: 600, now: at(0))
+        XCTAssertEqual(justOutside.update(pace: 616, target: 600, now: at(30)), .speedUp)
+    }
+
     func testOnPaceOrDirectionChangeRestartsTheTimer() {
         var monitor = PaceCueMonitor()
         _ = monitor.update(pace: 620, target: 600, now: at(0))

@@ -40,7 +40,9 @@ The numbers below were checked in Python before writing the tests.
 - **Distance:** the great-circle (haversine) distance between consecutive used fixes, with an Earth radius of 6,371,000 m. A fix implying more than 10 m/s (about 2:41 per mile) since the last one is a GPS jump: it is ignored, and the previous fix stays the reference. While the workout is paused, fixes move the reference point but add no distance and no route points.
 - **Pace:** distance and time between the oldest and newest fixes within the last 15 s. There is no pace until the window spans at least 5 s and 5 m. The window restarts after a pause.
 - **Splits:** a split is recorded each mile of distance, timed in active (unpaused) workout time. A crossing between two fixes is timed by straight-line interpolation. A partial final split is kept if it is at least 16 m.
-- **Pace cue:** when a step has a target pace and the smoothed pace is more than 15 s/mi off it for 30 s, the app says "Pick up the pace." or "Ease off the pace.". It repeats every further 30 s while still off. The timer restarts on a step change, a pause, a change of direction, or a return to within 15 s.
+- **Pace cue (known tuning point):** when a step has a target pace and the smoothed pace is more than 15 s/mi off it for 30 s, the app says "Pick up the pace." or "Ease off the pace.". It repeats every further 30 s while still off. The timer restarts on a step change, a pause, a change of direction, or a return to within 15 s.
+  One in-tolerance reading restarts it, so GPS noise may suppress cues for a runner only 16-25 s/mi
+  off. Judge this on the outdoor run, and add a short grace period if needed.
 - **Distance steps outdoors** end when the distance covered since the step started reaches the step's distance. Skip forward still ends them by hand, for example when GPS is lost.
 - **GPS lost:** with no used fix for 10 s, the live screen shows a warning. Time keeps running and distance holds.
 - **Free run:** one run step with a new `StepMeasure.open`, which lasts until the runner ends the workout. A free run is never in the plan, so its record's `workoutID` is nil. This is decided in the summary by checking whether the plan contains the workout.
@@ -623,7 +625,7 @@ git commit -m "Add pace window and mile splits"
 - [ ] Back within 15 s/mi, a change of direction, a missing pace or target, or `reset()` restarts the 30 s
 - [ ] "Mile 2, 9 minutes 32 seconds." and "Mile 1, 10 minutes." wording; cue wording as above
 
-**Verify:** TEST with `--filter PaceCueTests` → `Executed 4 tests, with 0 failures`
+**Verify:** TEST with `--filter PaceCueTests` → `Executed 5 tests, with 0 failures`
 
 **Steps:**
 
@@ -646,6 +648,16 @@ final class PaceCueTests: XCTestCase {
         XCTAssertEqual(monitor.update(pace: 620, target: 600, now: at(30)), .speedUp)
         XCTAssertNil(monitor.update(pace: 620, target: 600, now: at(31)))
         XCTAssertEqual(monitor.update(pace: 620, target: 600, now: at(60)), .speedUp)
+    }
+
+    func testFifteenSecondsOffIsWithinTolerance() {
+        var monitor = PaceCueMonitor()
+        for second in [0.0, 30, 60] {
+            XCTAssertNil(monitor.update(pace: 615, target: 600, now: at(second)))
+        }
+        var justOutside = PaceCueMonitor()
+        _ = justOutside.update(pace: 616, target: 600, now: at(0))
+        XCTAssertEqual(justOutside.update(pace: 616, target: 600, now: at(30)), .speedUp)
     }
 
     func testOnPaceOrDirectionChangeRestartsTheTimer() {
