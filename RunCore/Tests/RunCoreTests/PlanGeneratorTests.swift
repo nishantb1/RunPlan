@@ -101,8 +101,12 @@ final class PlanGeneratorTests: XCTestCase {
             for fitness in fitnesses {
                 for days in daySets {
                     for weeks in Profile.planWeeksRange {
-                        let profile = makeProfile(goal: goal, fitness: fitness, runDays: days, weeks: weeks)
-                        checkValid(generate(profile), profile: profile, label: "\(goal) \(fitness) \(days.count)d \(weeks)w")
+                        // Monday, Wednesday and Saturday starts: weeks are 7-day windows from the start.
+                        for startDay in [2, 4, 7] {
+                            var profile = makeProfile(goal: goal, fitness: fitness, runDays: days, weeks: weeks)
+                            profile.startDate = TestCalendar.date(2026, 11, startDay)
+                            checkValid(generate(profile), profile: profile, label: "\(goal) \(fitness) \(days.count)d \(weeks)w start \(startDay) Nov")
+                        }
                     }
                 }
             }

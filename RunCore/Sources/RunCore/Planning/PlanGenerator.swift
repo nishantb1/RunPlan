@@ -3,8 +3,10 @@ import Foundation
 /// Builds a training plan from onboarding answers. Deterministic: the same profile and
 /// calendar always give the same weeks, dates and steps; only the generated IDs differ.
 ///
-/// - Weeks: the last week is a taper ending in a time trial at the goal distance, every fourth
-///   other week is a cutback at 75 percent, and the rest are build weeks.
+/// - Weeks: the last week is a taper ending in a time trial at the goal distance; every fourth
+///   week, unless it is the last, is a cutback at 75 percent; the rest are build weeks.
+/// - Taper: the last run day by date is the time trial, whatever its weekday, so the plan
+///   always ends with it even when the start date is mid-week.
 /// - Walk-run: a runner who cannot yet run 20 minutes climbs `WalkRunLevel.ladder` one rung
 ///   per build week, then switches to running.
 /// - Running: the week's easy-run length starts at 20 minutes (30 with a race result) and
@@ -38,7 +40,8 @@ public enum PlanGenerator {
 
         for number in 1...profile.planWeeks {
             let kind = weekKind(number, of: profile.planWeeks)
-            let days = runDays(inWeek: number, from: start, profile: profile, calendar: calendar)
+            let weekDays = runDays(inWeek: number, from: start, profile: profile, calendar: calendar)
+            let days = kind == .taper ? taperRoles(weekDays) : weekDays
             let workouts: [Workout]
 
             if let index = walkRunIndex {
@@ -124,7 +127,7 @@ public enum PlanGenerator {
 
     /// The run days inside week `number`'s 7-day window from `start`, in date order.
     static func runDays(inWeek number: Int, from start: Date, profile: Profile, calendar: Calendar) -> [RunDay] {
-        let ordered = profile.runDays.sorted()
+        let ordered = Array(Set(profile.runDays)).sorted()
         return (0..<7).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: (number - 1) * 7 + offset, to: start) else {
                 return nil
@@ -133,6 +136,13 @@ public enum PlanGenerator {
                 return nil
             }
             return RunDay(date: date, role: role(at: position, of: ordered.count))
+        }
+    }
+
+    /// The taper week's roles by date: the last run day is the time trial, the rest are easy.
+    static func taperRoles(_ days: [RunDay]) -> [RunDay] {
+        days.enumerated().map { offset, day in
+            RunDay(date: day.date, role: offset == days.count - 1 ? .long : .easy)
         }
     }
 

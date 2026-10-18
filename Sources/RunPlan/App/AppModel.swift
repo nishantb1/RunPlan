@@ -63,7 +63,9 @@ final class AppModel {
     }
 
     /// Saves the finished session as a run, marks its planned workout done, and closes it. If the
-    /// run cannot be written, the session stays open so Save can be tried again.
+    /// run cannot be written, the session stays open so Save can be tried again. Any saved run
+    /// completes its workout, even one ended early; running a completed workout again links it
+    /// to the newer run, and the older run stays in history.
     func save(_ record: RunRecord) {
         do {
             try runs.save(record)

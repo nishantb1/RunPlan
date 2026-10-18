@@ -1041,7 +1041,7 @@ git commit -m "Add workout builder and walk-run ladder"
 - [ ] Running build weeks grow by at most 10 percent plus 60 s per workout; running cutback weeks are at most 80 percent of the previous build week plus 60 s per workout
 - [ ] The same profile always gives the same plan, apart from IDs
 
-**Verify:** TEST with `--filter PlanGeneratorTests` → `Executed 7 tests, with 0 failures`
+**Verify:** TEST with `--filter PlanGeneratorTests` → `Executed 7 tests, with 0 failures` (2,112 plans: Monday, Wednesday and Saturday starts)
 
 **Steps:**
 
@@ -1153,8 +1153,12 @@ final class PlanGeneratorTests: XCTestCase {
             for fitness in fitnesses {
                 for days in daySets {
                     for weeks in Profile.planWeeksRange {
-                        let profile = makeProfile(goal: goal, fitness: fitness, runDays: days, weeks: weeks)
-                        checkValid(generate(profile), profile: profile, label: "\(goal) \(fitness) \(days.count)d \(weeks)w")
+                        // Monday, Wednesday and Saturday starts: weeks are 7-day windows from the start.
+                        for startDay in [2, 4, 7] {
+                            var profile = makeProfile(goal: goal, fitness: fitness, runDays: days, weeks: weeks)
+                            profile.startDate = TestCalendar.date(2026, 11, startDay)
+                            checkValid(generate(profile), profile: profile, label: "\(goal) \(fitness) \(days.count)d \(weeks)w start \(startDay) Nov")
+                        }
                     }
                 }
             }
@@ -1272,8 +1276,10 @@ import Foundation
 /// Builds a training plan from onboarding answers. Deterministic: the same profile and
 /// calendar always give the same weeks, dates and steps; only the generated IDs differ.
 ///
-/// - Weeks: the last week is a taper ending in a time trial at the goal distance, every fourth
-///   other week is a cutback at 75 percent, and the rest are build weeks.
+/// - Weeks: the last week is a taper ending in a time trial at the goal distance; every fourth
+///   week, unless it is the last, is a cutback at 75 percent; the rest are build weeks.
+/// - Taper: the last run day by date is the time trial, whatever its weekday, so the plan
+///   always ends with it even when the start date is mid-week.
 /// - Walk-run: a runner who cannot yet run 20 minutes climbs `WalkRunLevel.ladder` one rung
 ///   per build week, then switches to running.
 /// - Running: the week's easy-run length starts at 20 minutes (30 with a race result) and
@@ -1307,7 +1313,8 @@ public enum PlanGenerator {
 
         for number in 1...profile.planWeeks {
             let kind = weekKind(number, of: profile.planWeeks)
-            let days = runDays(inWeek: number, from: start, profile: profile, calendar: calendar)
+            let weekDays = runDays(inWeek: number, from: start, profile: profile, calendar: calendar)
+            let days = kind == .taper ? taperRoles(weekDays) : weekDays
             let workouts: [Workout]
 
             if let index = walkRunIndex {
@@ -1393,7 +1400,7 @@ public enum PlanGenerator {
 
     /// The run days inside week `number`'s 7-day window from `start`, in date order.
     static func runDays(inWeek number: Int, from start: Date, profile: Profile, calendar: Calendar) -> [RunDay] {
-        let ordered = profile.runDays.sorted()
+        let ordered = Array(Set(profile.runDays)).sorted()
         return (0..<7).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: (number - 1) * 7 + offset, to: start) else {
                 return nil
@@ -1402,6 +1409,13 @@ public enum PlanGenerator {
                 return nil
             }
             return RunDay(date: date, role: role(at: position, of: ordered.count))
+        }
+    }
+
+    /// The taper week's roles by date: the last run day is the time trial, the rest are easy.
+    static func taperRoles(_ days: [RunDay]) -> [RunDay] {
+        days.enumerated().map { offset, day in
+            RunDay(date: day.date, role: offset == days.count - 1 ? .long : .easy)
         }
     }
 
@@ -1703,7 +1717,6 @@ final class AppModel {
     private(set) var records: [RunRecord] = []
     /// nil until onboarding has created one.
     private(set) var plan: Plan?
-    let todaysWorkout: Workout = SampleWorkouts.runWalk()
 
     /// Non-nil while a workout is on screen.
     var session: WorkoutSessionModel?
@@ -1753,7 +1766,9 @@ final class AppModel {
     }
 
     /// Saves the finished session as a run, marks its planned workout done, and closes it. If the
-    /// run cannot be written, the session stays open so Save can be tried again.
+    /// run cannot be written, the session stays open so Save can be tried again. Any saved run
+    /// completes its workout, even one ended early; running a completed workout again links it
+    /// to the newer run, and the older run stays in history.
     func save(_ record: RunRecord) {
         do {
             try runs.save(record)
