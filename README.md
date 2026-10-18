@@ -62,3 +62,18 @@ changes after a reboot, rerun the `netsh` line with the new one.
 - Open a workout, tap Edit, change its date and one step's speed, Save: the change shows, and
   survives a relaunch.
 - Run a planned workout and save it: it gets a done mark and the week's count goes up.
+- Plan tab > Change plan: onboarding opens with your answers filled in; Cancel changes nothing, and Replace plan asks first.
+
+## On-device checklist (outdoor GPS)
+
+- Start a workout outdoors for the first time: RunPlan asks for location, then waits for GPS and
+  enables Start once it is ready.
+- With location turned off in Settings: the start sheet explains and offers treadmill mode.
+- Run with the phone locked: distance and the route keep recording, and cues keep playing.
+- A planned distance step (the time trial) ends by itself when its distance is covered.
+- Each mile is announced with its split, and running well off a target pace gives a pace cue.
+- Walk somewhere with no signal for over 10 s: the live screen shows the GPS warning and distance
+  holds.
+- Force-quit mid-run and reopen: resuming keeps the distance and route so far.
+- Save the summary: it shows distance, splits and the route map, and the run appears in Runs.
+- Plan tab > Free run > Outdoor: runs until ended, with no planned workout marked done.

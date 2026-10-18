@@ -180,6 +180,17 @@ only refreshes the display.
 The route is stored with the record and drawn on a MapKit map in the run summary. A free run (no
 planned workout) is available from the Plan screen in either mode.
 
+Implementation note (stage 4, 2026-10-18): auto-pause moves to stage 5 with the Settings screen
+that switches it on. A free run is one step with `StepMeasure.open`, which lasts until the runner
+ends it. Fixes older than 5 s or less accurate than 20 m are dropped, jumps faster than 10 m/s are
+ignored, the signal warning shows after 10 s without a usable fix, and a partial final split under
+16 m is dropped. The exact rules are in `docs/superpowers/plans/2026-10-18-outdoor-gps.md`.
+Changing the plan (onboarding prefilled from the current plan, then a confirmation) was added in
+stage 4 at the user's request, ahead of the stage 5 Settings screen. Notes for stage 5: the pace
+cue's 30 s timer restarts on one in-tolerance reading, so judge it outdoors and add a short grace
+period if cues rarely fire; and `RunStore.all()` decodes every route, so the History screen
+should load routes only when a run is opened.
+
 ## Screens
 
 1. **Onboarding:** goal, fitness, days and run days, plan length, start date, then a preview of the
