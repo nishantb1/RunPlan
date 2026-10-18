@@ -2132,7 +2132,8 @@ git commit -m "Add the outdoor start flow and free run"
 **Acceptance Criteria:**
 - [ ] Outdoors: miles so far and pace /mi (or "--:--"), and a yellow "GPS signal lost" banner when there's no signal
 - [ ] A distance step outdoors shows the distance left; a timed step counts down; an open step counts up
-- [ ] With nothing planned (free run) the progress bar is replaced by elapsed time
+- [ ] With nothing planned (free run) the progress bar is replaced by elapsed time, and a single-step run hides the step counter and next-step line
+- [ ] Skip forward is disabled on the last step, so ending a run always goes through Stop and its confirmation
 - [ ] Treadmill layout unchanged apart from that; BUILD succeeds
 
 **Verify:** BUILD → success
@@ -2160,9 +2161,11 @@ struct LiveWorkoutView: View {
 
             if let snapshot = session.snapshot {
                 VStack(spacing: isOutdoor ? 14 : 20) {
-                    Text("Step \(snapshot.stepIndex + 1) of \(snapshot.stepCount)")
-                        .font(.headline)
-                        .foregroundStyle(.gray)
+                    if snapshot.stepCount > 1 {
+                        Text("Step \(snapshot.stepIndex + 1) of \(snapshot.stepCount)")
+                            .font(.headline)
+                            .foregroundStyle(.gray)
+                    }
 
                     Text(CueText.displayKind(snapshot.step.kind).uppercased())
                         .font(.system(size: isOutdoor ? 52 : 64, weight: .heavy))
@@ -2190,9 +2193,11 @@ struct LiveWorkoutView: View {
 
                     progress(snapshot)
 
-                    Text(nextText(snapshot))
-                        .font(.title3)
-                        .foregroundStyle(.gray)
+                    if snapshot.stepCount > 1 {
+                        Text(nextText(snapshot))
+                            .font(.title3)
+                            .foregroundStyle(.gray)
+                    }
 
                     Spacer()
 
@@ -2259,12 +2264,13 @@ struct LiveWorkoutView: View {
             controlButton(session.isPaused ? "play.fill" : "pause.fill") {
                 if session.isPaused { session.resume() } else { session.pause() }
             }
-            controlButton("forward.end.fill") { session.skipForward() }
+            // On the last step, skipping forward would end the run without asking; Stop asks.
+            controlButton("forward.end.fill", enabled: snapshot.nextStep != nil) { session.skipForward() }
             controlButton("stop.fill") { confirmingEnd = true }
         }
     }
 
-    private func controlButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+    private func controlButton(_ systemName: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 30))
@@ -2272,6 +2278,8 @@ struct LiveWorkoutView: View {
                 .background(Color.white.opacity(0.15), in: Circle())
                 .foregroundStyle(.white)
         }
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.3)
     }
 
     /// Countdown for a timed step, distance left for a distance step outdoors, otherwise
