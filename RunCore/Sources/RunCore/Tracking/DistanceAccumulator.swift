@@ -41,6 +41,16 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
         return meters
     }
 
+    /// Call when the workout pauses or is restored. The next point starts a new segment, and the
+    /// first fix after the pause becomes the reference, so ground covered while paused is neither
+    /// drawn nor counted even when no fix arrives during the pause.
+    mutating func breakRoute() {
+        if !route.isEmpty {
+            pausedSinceLastPoint = true
+        }
+        last = nil
+    }
+
     /// Swaps in a route kept elsewhere; see `ActiveWorkoutStore`.
     mutating func replaceRoute(_ route: [RoutePoint]) {
         self.route = route

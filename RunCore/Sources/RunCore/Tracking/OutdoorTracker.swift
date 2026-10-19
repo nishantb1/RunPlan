@@ -82,6 +82,12 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
         return events
     }
 
+    /// Call when the workout pauses, by hand or automatically, and when it is restored after a
+    /// crash: the route breaks there and nothing covered until the next fix after it counts.
+    public mutating func breakRoute() {
+        distance.breakRoute()
+    }
+
     /// Call when the runner skips or restarts a step by hand. The next `events` call then measures
     /// the step's distance afresh; skip back on the first step keeps the same step index.
     public mutating func restartStep() {

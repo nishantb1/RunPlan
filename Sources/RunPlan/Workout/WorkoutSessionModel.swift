@@ -62,7 +62,14 @@ final class WorkoutSessionModel: Identifiable {
         self.checkpoints = ActiveWorkoutStore(store: store)
         self.engine = WorkoutEngine(steps: StepExpander.expand(active.workout.steps), restoring: active.checkpoint)
         self.location = active.mode == .outdoor ? location : nil
-        self.tracker = active.mode == .outdoor ? (active.outdoor ?? OutdoorTracker()) : nil
+        if active.mode == .outdoor {
+            // The runner may have moved since the crash, so the route breaks here.
+            var tracker = active.outdoor ?? OutdoorTracker()
+            tracker.breakRoute()
+            self.tracker = tracker
+        } else {
+            self.tracker = nil
+        }
         self.settings = settings
         self.autoPause = active.mode == .outdoor && settings.autoPause ? AutoPauseDetector() : nil
     }
@@ -99,6 +106,7 @@ final class WorkoutSessionModel: Identifiable {
     func pause() {
         autoPause?.manualOverride()
         engine.pause()
+        tracker?.breakRoute()
         refresh(forceCheckpoint: true)
     }
 
@@ -165,6 +173,7 @@ final class WorkoutSessionModel: Identifiable {
         switch action {
         case .pause:
             engine.pause()
+            tracker?.breakRoute()
             speak("Auto-paused.")
         case .resume:
             engine.resume()

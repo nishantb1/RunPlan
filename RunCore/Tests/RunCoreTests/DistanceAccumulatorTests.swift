@@ -46,13 +46,64 @@ final class DistanceAccumulatorTests: XCTestCase {
         XCTAssertEqual(accumulator.route.segments.map(\.count), [2, 2])
     }
 
-    func testRouteWithoutPausesIsOneSegment() throws {
+    func testAPauseWithNoFixesStillBreaksTheRouteAndCountsNothing() {
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 0))
+        accumulator.add(fix(at: 1, north: 3))
+        // Paused with GPS lost, the runner walks 600 m in 5 minutes, then resumes.
+        accumulator.breakRoute()
+        accumulator.add(fix(at: 300, north: 603))
+        accumulator.add(fix(at: 301, north: 606))
+
+        XCTAssertEqual(accumulator.totalMeters, 6, accuracy: 1e-6)
+        XCTAssertEqual(accumulator.route.map(\.startsSegment), [nil, nil, true, nil])
+    }
+
+    func testARejectedJumpWhilePausedStillBreaksTheRoute() {
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 0))
+        accumulator.add(fix(at: 1, north: 3))
+        accumulator.add(fix(at: 2, north: 503), counting: false)
+        accumulator.add(fix(at: 3, north: 6))
+
+        XCTAssertEqual(accumulator.route.map(\.startsSegment), [nil, nil, true])
+    }
+
+    func testRouteWithoutPausesIsOneSegment() {
         let route = (0...4).map { fix(at: Double($0), north: Double(3 * $0)).routePoint }
         XCTAssertEqual(route.segments, [route])
         XCTAssertEqual([RoutePoint]().segments, [])
+        XCTAssertTrue(route.hasLine)
 
-        let json = try JSONEncoder().encode(route[0])
+        // A marked first point opens the only segment rather than an empty one before it.
+        var marked = route
+        marked[0].startsSegment = true
+        XCTAssertEqual(marked.segments.count, 1)
+    }
+
+    func testRouteOfSinglePointsHasNoLine() {
+        let points = (0...2).map { fix(at: Double($0), north: Double(30 * $0)).routePoint }
+        let route = points.map { point -> RoutePoint in
+            var marked = point
+            marked.startsSegment = true
+            return marked
+        }
+        XCTAssertEqual(route.segments.map(\.count), [1, 1, 1])
+        XCTAssertFalse(route.hasLine)
+    }
+
+    func testUnmarkedPointsAndOlderFilesCodeWithoutTheMark() throws {
+        let point = fix(at: 0, north: 0).routePoint
+        let json = try JSONEncoder().encode(point)
         XCTAssertFalse(String(decoding: json, as: UTF8.self).contains("startsSegment"))
+        XCTAssertEqual(try JSONDecoder().decode(RoutePoint.self, from: json), point)
+
+        // A checkpoint written before the pause flag existed still decodes.
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 0))
+        let older = try JSONEncoder().encode(accumulator)
+        XCTAssertFalse(String(decoding: older, as: UTF8.self).contains("pausedSinceLastPoint"))
+        XCTAssertEqual(try JSONDecoder().decode(DistanceAccumulator.self, from: older), accumulator)
     }
 
     func testRecoversFromABadReferenceFix() {

@@ -34,7 +34,7 @@ struct SummaryView: View {
                             }
                         }
                     }
-                    if session.route.count > 1 {
+                    if session.route.hasLine {
                         Section("Route") {
                             RouteMap(route: session.route)
                                 .frame(height: 240)

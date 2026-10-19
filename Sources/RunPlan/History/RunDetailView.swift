@@ -33,7 +33,7 @@ struct RunDetailView: View {
                 }
             }
 
-            if route.count > 1 {
+            if route.hasLine {
                 Section("Route") {
                     RouteMap(route: route)
                         .frame(height: 240)
