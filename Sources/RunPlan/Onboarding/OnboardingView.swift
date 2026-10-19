@@ -2,7 +2,7 @@ import SwiftUI
 import RunCore
 
 /// Goal, current fitness and schedule, then a preview of the plan before it is saved. Shown on
-/// first launch, and from the Plan tab to change the current plan.
+/// first launch, and from the Plan and Settings tabs to change the current plan.
 struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var model: OnboardingModel

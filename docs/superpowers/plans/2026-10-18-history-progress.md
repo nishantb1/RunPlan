@@ -1591,7 +1591,7 @@ struct SettingsView: View {
                 Section {
                     Button("Reset everything", role: .destructive) { confirmingReset = true }
                 } footer: {
-                    Text("Deletes your plan, every run and these settings.")
+                    Text("Deletes your plan, every run and these settings, then starts setup again.")
                 }
             }
             .navigationTitle("Settings")
