@@ -54,6 +54,7 @@ final class RunStoreTests: XCTestCase {
         listed.notes = "Windy"
         try runs.save(listed)
 
+        XCTAssertEqual(store.load([RoutePoint].self, from: "routes/\(record.id.uuidString).json"), route)
         XCTAssertEqual(runs.route(for: listed), route)
         XCTAssertEqual(runs.all().first?.notes, "Windy")
     }
@@ -70,6 +71,10 @@ final class RunStoreTests: XCTestCase {
         XCTAssertEqual(store.load(RunRecord.self, from: "records/\(record.id.uuidString).json")?.route, [])
         XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("routes/\(treadmill.id.uuidString).json").path))
         XCTAssertEqual(runs.all().count, 2)
+
+        // A second pass finds nothing left to move.
+        runs.moveEmbeddedRoutes()
+        XCTAssertEqual(runs.route(for: record), route)
     }
 
     func testRunWithoutRouteWritesNoRouteFile() throws {

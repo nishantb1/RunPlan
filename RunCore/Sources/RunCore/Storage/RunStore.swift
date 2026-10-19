@@ -15,6 +15,7 @@ public struct RunStore: Sendable {
     /// commit point: an interrupted save leaves at most an unlisted route file, never a listed
     /// run that has lost its route. A record from `all()` carries no route; if its file still
     /// holds one from before routes had their own files, that route is moved across, not lost.
+    /// An empty route never clears a route already saved.
     public func save(_ record: RunRecord) throws {
         let route = record.route.isEmpty ? embeddedRoute(record.id) : record.route
         if !route.isEmpty {
@@ -26,7 +27,7 @@ public struct RunStore: Sendable {
     }
 
     /// Moves routes still kept inside older records into their own files, so listing runs no
-    /// longer decodes them. Once they have moved there is nothing to do, so it runs at launch.
+    /// longer decodes them. Cheap once every route has moved, so it runs at each launch.
     public func moveEmbeddedRoutes() {
         for name in recordNames() {
             guard let record = store.load(RunRecord.self, from: "\(Self.folder)/\(name)"),

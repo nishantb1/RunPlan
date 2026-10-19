@@ -33,7 +33,7 @@ final class AppModel {
         plans = PlanStore(store: store)
         settingsStore = SettingsStore(store: store)
         settings = settingsStore.load()
-        // Runs saved before routes had their own files: move each route out, once.
+        // Runs saved before routes had their own files: move any route still inside one.
         runs.moveEmbeddedRoutes()
         records = runs.all()
         plan = plans.load()
