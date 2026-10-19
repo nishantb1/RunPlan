@@ -46,6 +46,32 @@ final class RunStoreTests: XCTestCase {
         XCTAssertEqual(runs.route(for: listed), route)
     }
 
+    func testSavingAListedOlderRecordKeepsItsRoute() throws {
+        let record = outdoorRun()
+        try store.save(record, as: "records/\(record.id.uuidString).json")
+
+        var listed = try XCTUnwrap(runs.all().first)
+        listed.notes = "Windy"
+        try runs.save(listed)
+
+        XCTAssertEqual(runs.route(for: listed), route)
+        XCTAssertEqual(runs.all().first?.notes, "Windy")
+    }
+
+    func testOlderRecordsRoutesMoveToTheirOwnFiles() throws {
+        let record = outdoorRun()
+        try store.save(record, as: "records/\(record.id.uuidString).json")
+        let treadmill = RunRecord(mode: .treadmill, startedAt: trackStart.addingTimeInterval(3600), durationSeconds: 600, distanceMeters: 0)
+        try runs.save(treadmill)
+
+        runs.moveEmbeddedRoutes()
+
+        XCTAssertEqual(store.load([RoutePoint].self, from: "routes/\(record.id.uuidString).json"), route)
+        XCTAssertEqual(store.load(RunRecord.self, from: "records/\(record.id.uuidString).json")?.route, [])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("routes/\(treadmill.id.uuidString).json").path))
+        XCTAssertEqual(runs.all().count, 2)
+    }
+
     func testRunWithoutRouteWritesNoRouteFile() throws {
         let record = RunRecord(mode: .treadmill, startedAt: trackStart, durationSeconds: 600, distanceMeters: 0)
         try runs.save(record)

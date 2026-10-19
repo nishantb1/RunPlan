@@ -13,21 +13,31 @@ public struct RunStore: Sendable {
 
     /// Saves a finished run with its route. The route is written first, so the record is the
     /// commit point: an interrupted save leaves at most an unlisted route file, never a listed
-    /// run that has lost its route. Records from `all()` carry no route, so do not save one
-    /// back as it is.
+    /// run that has lost its route. A record from `all()` carries no route; if its file still
+    /// holds one from before routes had their own files, that route is moved across, not lost.
     public func save(_ record: RunRecord) throws {
-        if !record.route.isEmpty {
-            try store.save(record.route, as: routeName(record.id))
+        let route = record.route.isEmpty ? embeddedRoute(record.id) : record.route
+        if !route.isEmpty {
+            try store.save(route, as: routeName(record.id))
         }
         var listed = record
         listed.route = []
         try store.save(listed, as: recordName(record.id))
     }
 
+    /// Moves routes still kept inside older records into their own files, so listing runs no
+    /// longer decodes them. Once they have moved there is nothing to do, so it runs at launch.
+    public func moveEmbeddedRoutes() {
+        for name in recordNames() {
+            guard let record = store.load(RunRecord.self, from: "\(Self.folder)/\(name)"),
+                  !record.route.isEmpty else { continue }
+            try? save(record)
+        }
+    }
+
     /// Every readable record, newest first, without routes (see `route(for:)`).
     public func all() -> [RunRecord] {
-        store.names(in: Self.folder)
-            .filter { $0.hasSuffix(".json") }
+        recordNames()
             .compactMap { name -> RunRecord? in
                 // Older records carry their route inside; drop it straight away.
                 guard var record = store.load(RunRecord.self, from: "\(Self.folder)/\(name)") else { return nil }
@@ -37,17 +47,25 @@ public struct RunStore: Sendable {
             .sorted { $0.startedAt > $1.startedAt }
     }
 
-    /// The run's route. Records saved before routes had their own files keep it inside.
+    /// The run's route. Records saved before routes had their own files keep it inside until
+    /// `moveEmbeddedRoutes()` runs.
     public func route(for record: RunRecord) -> [RoutePoint] {
-        store.load([RoutePoint].self, from: routeName(record.id))
-            ?? store.load(RunRecord.self, from: recordName(record.id))?.route
-            ?? []
+        store.load([RoutePoint].self, from: routeName(record.id)) ?? embeddedRoute(record.id)
     }
 
     /// Deletes every run and route.
     public func deleteAll() {
         store.delete(Self.folder)
         store.delete(Self.routeFolder)
+    }
+
+    private func recordNames() -> [String] {
+        store.names(in: Self.folder).filter { $0.hasSuffix(".json") }
+    }
+
+    /// The route inside a record's own file, from before routes had their own files.
+    private func embeddedRoute(_ id: UUID) -> [RoutePoint] {
+        store.load(RunRecord.self, from: recordName(id))?.route ?? []
     }
 
     private func recordName(_ id: UUID) -> String {
