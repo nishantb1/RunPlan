@@ -49,8 +49,8 @@ struct RunDetailView: View {
         }
         .navigationTitle(record.title)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            route = app.route(for: record)
+        .task(id: record.id) {
+            route = await app.route(for: record)
         }
     }
 }

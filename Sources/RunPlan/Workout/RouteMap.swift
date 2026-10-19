@@ -5,7 +5,7 @@ import _MapKit_SwiftUI
 import RunCore
 
 /// A run's route as an orange line on a zoom-only map, so a drag scrolls the surrounding list
-/// instead of panning. Coordinates are converted once, when the view is made.
+/// instead of panning. Coordinates are converted in `init`, not on every redraw of the map.
 struct RouteMap: View {
     private let coordinates: [CLLocationCoordinate2D]
 
@@ -18,5 +18,6 @@ struct RouteMap: View {
             MapPolyline(coordinates: coordinates)
                 .stroke(.orange, lineWidth: 4)
         }
+        .accessibilityLabel("Route map")
     }
 }

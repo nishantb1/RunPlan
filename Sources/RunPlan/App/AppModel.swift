@@ -55,9 +55,11 @@ final class AppModel {
         try? settingsStore.save(settings)
     }
 
-    /// A saved run's route, loaded from its own file when the run is opened.
-    func route(for record: RunRecord) -> [RoutePoint] {
-        runs.route(for: record)
+    /// A saved run's route, loaded from its own file when the run is opened. A long run holds
+    /// thousands of points, so the file is read and decoded off the main thread.
+    func route(for record: RunRecord) async -> [RoutePoint] {
+        let runs = runs
+        return await Task.detached(priority: .userInitiated) { runs.route(for: record) }.value
     }
 
     /// Deletes the plan, every run, the settings and any unfinished workout, which returns the

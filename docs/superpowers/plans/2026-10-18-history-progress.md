@@ -891,9 +891,11 @@ In `Sources/RunPlan/App/AppModel.swift`:
         try? settingsStore.save(settings)
     }
 
-    /// A saved run's route, loaded from its own file when the run is opened.
-    func route(for record: RunRecord) -> [RoutePoint] {
-        runs.route(for: record)
+    /// A saved run's route, loaded from its own file when the run is opened. A long run holds
+    /// thousands of points, so the file is read and decoded off the main thread.
+    func route(for record: RunRecord) async -> [RoutePoint] {
+        let runs = runs
+        return await Task.detached(priority: .userInitiated) { runs.route(for: record) }.value
     }
 
     /// Deletes the plan, every run, the settings and any unfinished workout, which returns the
@@ -1087,7 +1089,7 @@ import _MapKit_SwiftUI
 import RunCore
 
 /// A run's route as an orange line on a zoom-only map, so a drag scrolls the surrounding list
-/// instead of panning. Coordinates are converted once, when the view is made.
+/// instead of panning. Coordinates are converted in `init`, not on every redraw of the map.
 struct RouteMap: View {
     private let coordinates: [CLLocationCoordinate2D]
 
@@ -1100,6 +1102,7 @@ struct RouteMap: View {
             MapPolyline(coordinates: coordinates)
                 .stroke(.orange, lineWidth: 4)
         }
+        .accessibilityLabel("Route map")
     }
 }
 ```
@@ -1216,8 +1219,8 @@ struct RunDetailView: View {
         }
         .navigationTitle(record.title)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            route = app.route(for: record)
+        .task(id: record.id) {
+            route = await app.route(for: record)
         }
     }
 }
