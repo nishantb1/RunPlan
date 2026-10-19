@@ -83,9 +83,11 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     }
 
     /// Call when the workout pauses, by hand or automatically, and when it is restored after a
-    /// crash: the route breaks there and nothing covered until the next fix after it counts.
+    /// crash: the route breaks there, nothing covered until the next fix after it counts, and
+    /// the pace window starts again.
     public mutating func breakRoute() {
         distance.breakRoute()
+        smoother.reset()
     }
 
     /// Call when the runner skips or restarts a step by hand. The next `events` call then measures

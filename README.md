@@ -102,4 +102,4 @@ changes after a reboot, rerun the `netsh` line with the new one.
   while paused.
 - Runs from before this update still show their routes in History.
 - Force-quit mid-run outdoors and reopen: Resume brings the run back with its distance, and its
-  route up to at most 30 s before the quit.
+  route up to about 30 s before the quit; the line on the map breaks where the run was restored.

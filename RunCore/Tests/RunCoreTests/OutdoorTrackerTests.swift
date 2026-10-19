@@ -128,6 +128,18 @@ final class OutdoorTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.totalMeters, 6, accuracy: 1e-6)
     }
 
+    func testBreakingTheRouteRestartsThePace() {
+        var tracker = OutdoorTracker()
+        for second in 0...20 {
+            tracker.record(fix(at: Double(second), north: Double(3 * second)), now: at(second), counting: true)
+        }
+        XCTAssertNotNil(tracker.currentPace)
+
+        // Paused and resumed with no fix in between.
+        tracker.breakRoute()
+        XCTAssertNil(tracker.currentPace)
+    }
+
     func testSignal() {
         var tracker = OutdoorTracker()
         XCTAssertFalse(tracker.hasSignal(now: at(0)))
