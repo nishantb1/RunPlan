@@ -11,6 +11,9 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
     /// The reference fix. It is not advanced on a rejected jump, so the implied speed falls as
     /// time passes and a bad reference ages out instead of blocking every later fix.
     private var last: LocationSample?
+    /// Set by a fix while paused, so the next point kept starts a new segment of the route.
+    /// nil in checkpoints saved before it existed.
+    private var pausedSinceLastPoint: Bool?
 
     public init() {}
 
@@ -18,9 +21,12 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
     /// the fix only becomes the new reference point, so movement while paused is not counted.
     @discardableResult
     public mutating func add(_ sample: LocationSample, counting: Bool = true) -> Double {
+        if !counting, !route.isEmpty {
+            pausedSinceLastPoint = true
+        }
         guard let previous = last else {
             last = sample
-            if counting { route.append(sample.routePoint) }
+            if counting { appendPoint(sample) }
             return 0
         }
         let seconds = sample.timestamp.timeIntervalSince(previous.timestamp)
@@ -31,12 +37,21 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
         last = sample
         guard counting else { return 0 }
         totalMeters += meters
-        route.append(sample.routePoint)
+        appendPoint(sample)
         return meters
     }
 
     /// Swaps in a route kept elsewhere; see `ActiveWorkoutStore`.
     mutating func replaceRoute(_ route: [RoutePoint]) {
         self.route = route
+    }
+
+    private mutating func appendPoint(_ sample: LocationSample) {
+        var point = sample.routePoint
+        if pausedSinceLastPoint == true {
+            point.startsSegment = true
+            pausedSinceLastPoint = nil
+        }
+        route.append(point)
     }
 }

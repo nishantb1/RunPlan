@@ -33,6 +33,28 @@ final class DistanceAccumulatorTests: XCTestCase {
         XCTAssertEqual(accumulator.route.count, 3)
     }
 
+    func testAPauseStartsANewSegment() {
+        var accumulator = DistanceAccumulator()
+        accumulator.add(fix(at: 0, north: 0), counting: false)
+        accumulator.add(fix(at: 1, north: 3))
+        accumulator.add(fix(at: 2, north: 6))
+        accumulator.add(fix(at: 3, north: 9), counting: false)
+        accumulator.add(fix(at: 4, north: 12))
+        accumulator.add(fix(at: 5, north: 15))
+
+        XCTAssertEqual(accumulator.route.map(\.startsSegment), [nil, nil, true, nil])
+        XCTAssertEqual(accumulator.route.segments.map(\.count), [2, 2])
+    }
+
+    func testRouteWithoutPausesIsOneSegment() throws {
+        let route = (0...4).map { fix(at: Double($0), north: Double(3 * $0)).routePoint }
+        XCTAssertEqual(route.segments, [route])
+        XCTAssertEqual([RoutePoint]().segments, [])
+
+        let json = try JSONEncoder().encode(route[0])
+        XCTAssertFalse(String(decoding: json, as: UTF8.self).contains("startsSegment"))
+    }
+
     func testRecoversFromABadReferenceFix() {
         var accumulator = DistanceAccumulator()
         accumulator.add(fix(at: 0, north: 500))
