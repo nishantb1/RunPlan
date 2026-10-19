@@ -1673,9 +1673,9 @@ In `docs/superpowers/specs/2026-10-12-runplan-design.md`, add this paragraph dir
 ```markdown
 
 Implementation note (stage 5, 2026-10-18): settings live in `settings.json` and a workout reads
-them when it starts; voice cues off keeps the countdown beeps. Auto-pause (outdoors, off by
-default) pauses after speed over the last 6 s falls below 0.5 m/s and resumes above 1.2 m/s; a
-manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
+them when it starts; voice cues off keeps the countdown beeps and stops lowering music.
+Auto-pause (outdoors, off by default) pauses after speed over the last 6 s falls below 0.5 m/s
+and resumes above 1.2 m/s; a manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
 lists runs without loading them; older records keep their route inside and still show it. The
 chart colour is #C85A12 (light) and #D86A24 (dark), validated for lightness, chroma and contrast.
 Still deferred: a grace period for the pace cue (waiting on an outdoor run), writing the route to
@@ -1693,7 +1693,7 @@ Append to `README.md`:
 - History lists runs newest first; opening an outdoor run shows its splits and route map.
 - Progress shows plan completion, the longest run, weekly distance bars (tap one for its miles)
   and, after two runs of at least 100 m, the pace trend (tap for a run's pace).
-- Settings > Voice cues off: a workout keeps its beeps but says nothing.
+- Settings > Voice cues off: a workout keeps its beeps but says nothing, and music is not lowered.
 - Settings > Keep screen awake off: the screen dims and locks as usual during a workout.
 - Settings > Auto-pause outdoors on: stand still for several seconds and "Auto-paused" shows and
   is spoken; set off again and it resumes. A pause by hand stays paused.

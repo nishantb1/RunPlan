@@ -81,3 +81,15 @@ changes after a reboot, rerun the `netsh` line with the new one.
 - Force-quit mid-run and reopen: resuming keeps the distance and route so far.
 - Save the summary: it shows distance, splits and the route map, and the run appears in Runs.
 - Plan tab > Free run > Outdoor: runs until ended, with no planned workout marked done.
+
+## On-device checklist (history, progress and settings)
+
+- History lists runs newest first; opening an outdoor run shows its splits and route map.
+- Progress shows plan completion, the longest run, weekly distance bars (tap one for its miles)
+  and, after two runs of at least 100 m, the pace trend (tap for a run's pace).
+- Settings > Voice cues off: a workout keeps its beeps but says nothing, and music is not lowered.
+- Settings > Keep screen awake off: the screen dims and locks as usual during a workout.
+- Settings > Auto-pause outdoors on: stand still for several seconds and "Auto-paused" shows and
+  is spoken; set off again and it resumes. A pause by hand stays paused.
+- Settings > Change plan opens your answers; Reset everything asks first, then returns to
+  onboarding with no runs.
