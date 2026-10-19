@@ -25,6 +25,10 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
     /// Where the runner stopped. Measuring the resume from here, not across the 6 s window,
     /// lets a walk resume too: at walking pace the window alone never clears the accuracy.
     private var stoppedAt: LocationSample?
+    /// The first fix, until the runner has clearly set off from it. Nothing pauses before then,
+    /// since GPS wanders while it settles and the runner may stand waiting for it.
+    private var start: LocationSample?
+    private var hasSetOff = false
     public private(set) var isAutoPaused = false
 
     public init() {}
@@ -34,19 +38,27 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
     public mutating func update(_ sample: LocationSample, isRunning: Bool) -> Action? {
         fixes.append(sample)
         fixes.removeAll { sample.timestamp.timeIntervalSince($0.timestamp) > Self.windowSeconds }
+        if !hasSetOff, start == nil {
+            start = sample
+        }
         guard let first = fixes.first else { return nil }
         let span = sample.timestamp.timeIntervalSince(first.timestamp)
         guard span >= Self.minimumSpanSeconds else { return nil }
         let speed = Geo.distance(first, sample) / span
 
+        if !hasSetOff {
+            if let start, Self.hasMovedOn(from: start, to: sample, speed: speed) {
+                hasSetOff = true
+                self.start = nil
+            }
+            return nil
+        }
         if isRunning, !isAutoPaused, speed < Self.stoppedMetersPerSecond {
             isAutoPaused = true
             stoppedAt = sample
             return .pause
         }
-        if isAutoPaused, speed > Self.movingMetersPerSecond, let stoppedAt {
-            let noiseFloor = min(stoppedAt.horizontalAccuracy + sample.horizontalAccuracy, Self.maxNoiseFloorMeters)
-            guard Geo.distance(stoppedAt, sample) > noiseFloor else { return nil }
+        if isAutoPaused, let stoppedAt, Self.hasMovedOn(from: stoppedAt, to: sample, speed: speed) {
             isAutoPaused = false
             self.stoppedAt = nil
             return .resume
@@ -61,5 +73,13 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
         isAutoPaused = false
         stoppedAt = nil
         fixes.removeAll()
+    }
+
+    /// Faster than `movingMetersPerSecond` over the window, and further from `anchor` than the
+    /// two readings' accuracy (capped), so GPS wander while standing never counts as moving on.
+    private static func hasMovedOn(from anchor: LocationSample, to sample: LocationSample, speed: Double) -> Bool {
+        guard speed > movingMetersPerSecond else { return false }
+        let noiseFloor = min(anchor.horizontalAccuracy + sample.horizontalAccuracy, maxNoiseFloorMeters)
+        return Geo.distance(anchor, sample) > noiseFloor
     }
 }

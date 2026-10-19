@@ -67,15 +67,39 @@ final class AutoPauseDetectorTests: XCTestCase {
 
     func testManualResumeAfterStandingWaitsForFreshData() {
         var detector = AutoPauseDetector()
-        for second in 0...20 {
-            _ = detector.update(fix(at: Double(second), north: 0), isRunning: false)
+        // Runs at 3 m/s, then stands at 30 m, paused by hand.
+        for second in 0...10 {
+            _ = detector.update(fix(at: Double(second), north: Double(3 * second)), isRunning: true)
+        }
+        for second in 11...30 {
+            _ = detector.update(fix(at: Double(second), north: 30), isRunning: false)
         }
 
         // The runner taps Resume and sets off at 2 m/s.
         detector.manualOverride()
-        for second in 21...25 {
-            XCTAssertNil(detector.update(fix(at: Double(second), north: Double(2 * (second - 20))), isRunning: true))
+        for second in 31...35 {
+            XCTAssertNil(detector.update(fix(at: Double(second), north: 30 + Double(2 * (second - 30))), isRunning: true))
         }
+    }
+
+    func testNoPauseWhileWaitingForGPSAtTheStart() {
+        var detector = AutoPauseDetector()
+        var running = true
+        var actions: [(Int, AutoPauseDetector.Action)] = []
+        // Standing at the start for 30 s with readings wandering 4 m, then 4 m/s until 60 s,
+        // then stopped at 120 m.
+        let jitter: [Double] = [0, 4, 0, -4]
+
+        for second in 0...90 {
+            let north = second <= 30 ? jitter[second % 4] : second <= 60 ? Double(4 * (second - 30)) : 120
+            if let action = detector.update(fix(at: Double(second), north: north), isRunning: running) {
+                actions.append((second, action))
+                running = action == .resume
+            }
+        }
+
+        XCTAssertEqual(actions.map { $0.0 }, [66])
+        XCTAssertEqual(actions.map { $0.1 }, [.pause])
     }
 
     func testNothingHappensWithTooLittleData() {
