@@ -15,8 +15,8 @@ struct RootView: View {
                 TabView {
                     PlanView()
                         .tabItem { Label("Plan", systemImage: "calendar") }
-                    RunsView()
-                        .tabItem { Label("Runs", systemImage: "figure.run") }
+                    HistoryView()
+                        .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
                 }
             }
         }

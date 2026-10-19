@@ -1,7 +1,4 @@
 import SwiftUI
-import MapKit
-// SwiftUI's Map lives in this cross-import overlay; xtool's build does not pull it in on its own.
-import _MapKit_SwiftUI
 import RunCore
 
 /// One screen, every field skippable. Outdoors the distance is measured and the splits and
@@ -33,21 +30,15 @@ struct SummaryView: View {
                     if !session.splits.isEmpty {
                         Section("Splits") {
                             ForEach(session.splits, id: \.index) { split in
-                                LabeledContent(splitLabel(split), value: Pace.clock(split.durationSeconds))
+                                LabeledContent(SplitLabel.text(for: split), value: Pace.clock(split.durationSeconds))
                             }
                         }
                     }
                     if session.route.count > 1 {
                         Section("Route") {
-                            // Zoom only, so a drag on the map scrolls the form instead of panning.
-                            Map(initialPosition: .automatic, interactionModes: [.zoom]) {
-                                MapPolyline(coordinates: session.route.map {
-                                    CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                                })
-                                .stroke(.orange, lineWidth: 4)
-                            }
-                            .frame(height: 240)
-                            .listRowInsets(EdgeInsets())
+                            RouteMap(route: session.route)
+                                .frame(height: 240)
+                                .listRowInsets(EdgeInsets())
                         }
                     }
                 } else {
@@ -88,11 +79,6 @@ struct SummaryView: View {
         let normalized = distanceText.replacingOccurrences(of: ",", with: ".")
         guard let miles = Double(normalized), miles > 0 else { return 0 }
         return Pace.meters(fromMiles: miles)
-    }
-
-    private func splitLabel(_ split: Split) -> String {
-        guard split.distanceMeters < Pace.metersPerMile - 1 else { return "Mile \(split.index)" }
-        return String(format: "Last %.2f mi", Pace.miles(fromMeters: split.distanceMeters))
     }
 
     private var record: RunRecord {

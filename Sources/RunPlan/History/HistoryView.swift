@@ -1,8 +1,8 @@
 import SwiftUI
 import RunCore
 
-/// Saved runs, newest first.
-struct RunsView: View {
+/// Saved runs, newest first, each opening its summary.
+struct HistoryView: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
@@ -12,11 +12,20 @@ struct RunsView: View {
                     Text("No runs yet").foregroundStyle(.secondary)
                 } else {
                     ForEach(app.records) { record in
-                        RunRow(record: record)
+                        NavigationLink(value: record.id) {
+                            RunRow(record: record)
+                        }
                     }
                 }
             }
-            .navigationTitle("Runs")
+            .navigationTitle("History")
+            .navigationDestination(for: UUID.self) { id in
+                if let record = app.records.first(where: { $0.id == id }) {
+                    RunDetailView(record: record)
+                } else {
+                    ContentUnavailableView("Run not found", systemImage: "questionmark.circle")
+                }
+            }
         }
     }
 }
