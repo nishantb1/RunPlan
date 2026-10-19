@@ -11,6 +11,7 @@ final class AppModel {
     private let runs: RunStore
     private let plans: PlanStore
     private let settingsStore: SettingsStore
+    private let checkpoints: ActiveWorkoutStore
     /// Shared by the outdoor start sheet and outdoor sessions.
     let location = LocationService()
 
@@ -32,12 +33,13 @@ final class AppModel {
         runs = RunStore(store: store)
         plans = PlanStore(store: store)
         settingsStore = SettingsStore(store: store)
+        checkpoints = ActiveWorkoutStore(store: store)
         settings = settingsStore.load()
         // Runs saved before routes had their own files: move any route still inside one.
         runs.moveEmbeddedRoutes()
         records = runs.all()
         plan = plans.load()
-        pendingResume = store.load(ActiveWorkout.self, from: WorkoutSessionModel.checkpointFile)
+        pendingResume = checkpoints.load()
     }
 
     /// Generates a plan from onboarding answers and saves it.
@@ -71,7 +73,7 @@ final class AppModel {
         plans.delete()
         runs.deleteAll()
         settingsStore.delete()
-        store.delete(WorkoutSessionModel.checkpointFile)
+        checkpoints.delete()
         plan = nil
         records = []
         settings = AppSettings()
@@ -94,7 +96,7 @@ final class AppModel {
 
     func discardPending() {
         pendingResume = nil
-        store.delete(WorkoutSessionModel.checkpointFile)
+        checkpoints.delete()
     }
 
     /// Saves the finished session as a run, marks its planned workout done, and closes it. If the

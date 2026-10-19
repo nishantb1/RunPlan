@@ -88,6 +88,11 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
         stepIndex = nil
     }
 
+    /// Swaps in a route kept elsewhere; see `ActiveWorkoutStore`.
+    mutating func replaceRoute(_ route: [RoutePoint]) {
+        distance.replaceRoute(route)
+    }
+
     /// Distance left in the current step, or nil when the step is not measured by distance.
     public func stepMetersRemaining(for snapshot: WorkoutEngine.Snapshot) -> Double? {
         guard let target = snapshot.step.distanceMeters else { return nil }

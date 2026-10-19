@@ -11,8 +11,6 @@ import RunCore
 @Observable
 final class WorkoutSessionModel: Identifiable {
 
-    static let checkpointFile = "active.json"
-
     let id = UUID()
     let workout: Workout
     let mode: RunMode
@@ -29,13 +27,14 @@ final class WorkoutSessionModel: Identifiable {
     private var scheduler = CueScheduler()
     private let audio = AudioCueService()
     private let haptics = HapticsService()
-    private let store: JSONStore
+    private let checkpoints: ActiveWorkoutStore
     private let location: LocationService?
     private let settings: AppSettings
     /// Outdoors with auto-pause on only.
     private var autoPause: AutoPauseDetector?
     private var uiTimer: Timer?
     private var lastCheckpointSave = Date.distantPast
+    private var lastRouteSave = Date.distantPast
 
     /// Checkpoint writes and the final delete run in order on one queue, so an older write can
     /// never land after a newer one, or after the finished workout's checkpoint is deleted.
@@ -45,7 +44,7 @@ final class WorkoutSessionModel: Identifiable {
         self.workout = workout
         self.mode = mode
         self.startedAt = Date()
-        self.store = store
+        self.checkpoints = ActiveWorkoutStore(store: store)
         self.engine = WorkoutEngine(planSteps: workout.steps)
         self.location = mode == .outdoor ? location : nil
         self.tracker = mode == .outdoor ? OutdoorTracker() : nil
@@ -58,7 +57,7 @@ final class WorkoutSessionModel: Identifiable {
         self.workout = active.workout
         self.mode = active.mode
         self.startedAt = active.startedAt
-        self.store = store
+        self.checkpoints = ActiveWorkoutStore(store: store)
         self.engine = WorkoutEngine(steps: StepExpander.expand(active.workout.steps), restoring: active.checkpoint)
         self.location = active.mode == .outdoor ? location : nil
         self.tracker = active.mode == .outdoor ? (active.outdoor ?? OutdoorTracker()) : nil
@@ -245,6 +244,12 @@ final class WorkoutSessionModel: Identifiable {
         let now = Date()
         guard force || now.timeIntervalSince(lastCheckpointSave) >= 5 else { return }
         lastCheckpointSave = now
+        // The route is most of the checkpoint (about 1 MB on a long run), so it is written every
+        // 30 s and on pauses and skips; a crash loses at most that much of the line, never distance.
+        let includingRoute = tracker != nil && (force || now.timeIntervalSince(lastRouteSave) >= 30)
+        if includingRoute {
+            lastRouteSave = now
+        }
         let active = ActiveWorkout(
             workout: workout,
             mode: mode,
@@ -252,11 +257,10 @@ final class WorkoutSessionModel: Identifiable {
             checkpoint: engine.checkpoint(now: now),
             outdoor: tracker
         )
-        // A long run's route makes this about 1 MB, so encode and write it off the main actor.
-        let store = self.store
-        let file = Self.checkpointFile
+        // Encode and write off the main actor.
+        let checkpoints = self.checkpoints
         Self.checkpointQueue.async {
-            try? store.save(active, as: file)
+            try? checkpoints.save(active, includingRoute: includingRoute)
         }
     }
 
@@ -271,10 +275,9 @@ final class WorkoutSessionModel: Identifiable {
         location?.onSample = nil
         location?.stop()
         // Waits behind any write still in flight, so the deleted checkpoint stays deleted.
-        let store = self.store
-        let file = Self.checkpointFile
+        let checkpoints = self.checkpoints
         Self.checkpointQueue.sync {
-            store.delete(file)
+            checkpoints.delete()
         }
     }
 

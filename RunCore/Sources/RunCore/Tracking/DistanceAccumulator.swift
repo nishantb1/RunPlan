@@ -34,4 +34,9 @@ public struct DistanceAccumulator: Codable, Equatable, Sendable {
         route.append(sample.routePoint)
         return meters
     }
+
+    /// Swaps in a route kept elsewhere; see `ActiveWorkoutStore`.
+    mutating func replaceRoute(_ route: [RoutePoint]) {
+        self.route = route
+    }
 }
