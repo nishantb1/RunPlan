@@ -9,37 +9,53 @@ struct StatsView: View {
     @State private var selectedWeek: Date?
     @State private var selectedPaceDate: Date?
 
+    /// Weeks start on Monday, as in `RunStats`, whatever the locale's first weekday, so the bars,
+    /// their labels and the selection all line up with the totals.
+    private static let weekCalendar: Calendar = {
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
+        return calendar
+    }()
+
     var body: some View {
-        let weeks = RunStats.weeklyTotals(app.records, weeks: 8, endingOn: Date(), calendar: .current)
+        let weeks = RunStats.weeklyTotals(app.records, weeks: 8, endingOn: Date(), calendar: Self.weekCalendar)
         let paces = RunStats.paceTrend(app.records, limit: 12)
+        let longest = RunStats.longestRun(app.records)
 
         NavigationStack {
             List {
-                Section {
-                    HStack(spacing: 12) {
-                        if let plan = app.plan {
-                            let progress = PlanProgress(plan: plan)
-                            StatTile(title: "Plan", value: "\(progress.completed) of \(progress.total)", detail: "workouts done")
+                if app.plan != nil || longest != nil {
+                    Section {
+                        HStack(spacing: 12) {
+                            if let plan = app.plan {
+                                let progress = PlanProgress(plan: plan)
+                                StatTile(title: "Plan", value: "\(progress.completed) of \(progress.total)", detail: "workouts done")
+                            }
+                            if let longest {
+                                StatTile(
+                                    title: "Longest run",
+                                    value: String(format: "%.2f mi", Pace.miles(fromMeters: longest.distanceMeters)),
+                                    detail: longest.startedAt.formatted(date: .abbreviated, time: .omitted)
+                                )
+                            }
                         }
-                        if let longest = RunStats.longestRun(app.records) {
-                            StatTile(
-                                title: "Longest run",
-                                value: String(format: "%.2f mi", Pace.miles(fromMeters: longest.distanceMeters)),
-                                detail: longest.startedAt.formatted(date: .abbreviated, time: .omitted)
-                            )
-                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
                 }
 
                 Section("Weekly distance") {
-                    weeklyChart(weeks)
+                    if weeks.allSatisfy({ $0.runs == 0 }) {
+                        Text("No runs in the last 8 weeks.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        weeklyChart(weeks)
+                    }
                 }
 
                 Section("Average pace") {
                     if paces.count < 2 {
-                        Text("Pace appears after two runs with a distance.")
+                        Text("Pace appears after two runs of at least 100 m.")
                             .foregroundStyle(.secondary)
                     } else {
                         paceChart(paces)
@@ -59,8 +75,10 @@ struct StatsView: View {
             )
             .foregroundStyle(Color.chartAccent)
             .cornerRadius(4)
+            .accessibilityLabel("Week of \(week.weekStart.formatted(.dateTime.month().day()))")
+            .accessibilityValue("\(String(format: "%.1f", Pace.miles(fromMeters: week.meters))) miles, \(week.runs) \(week.runs == 1 ? "run" : "runs")")
 
-            if let selectedWeek, Calendar.current.isDate(selectedWeek, equalTo: week.weekStart, toGranularity: .weekOfYear) {
+            if let selectedWeek, Self.weekCalendar.isDate(selectedWeek, equalTo: week.weekStart, toGranularity: .weekOfYear) {
                 RuleMark(x: .value("Week", week.weekStart, unit: .weekOfYear))
                     .foregroundStyle(Color.secondary.opacity(0.3))
                     .annotation(position: .top, overflowResolution: .init(x: .fit, y: .disabled)) {
@@ -72,6 +90,7 @@ struct StatsView: View {
             }
         }
         .chartXSelection(value: $selectedWeek)
+        .environment(\.calendar, Self.weekCalendar)
         .chartXAxis {
             AxisMarks(values: .stride(by: .weekOfYear, count: 2)) { _ in
                 AxisGridLine()
@@ -92,9 +111,13 @@ struct StatsView: View {
                 LineMark(x: .value("Date", point.date), y: .value("Pace", point.secondsPerMile))
                     .foregroundStyle(Color.chartAccent)
                     .lineStyle(StrokeStyle(lineWidth: 2))
+                    // The points carry each run for VoiceOver, so the line is not read twice.
+                    .accessibilityHidden(true)
                 PointMark(x: .value("Date", point.date), y: .value("Pace", point.secondsPerMile))
                     .foregroundStyle(Color.chartAccent)
                     .symbolSize(64)
+                    .accessibilityLabel(point.date.formatted(date: .abbreviated, time: .omitted))
+                    .accessibilityValue("\(Pace.clock(point.secondsPerMile)) per mile")
             }
             if let selected {
                 RuleMark(x: .value("Date", selected.date))
@@ -114,8 +137,8 @@ struct StatsView: View {
             AxisMarks { value in
                 AxisGridLine()
                 AxisValueLabel {
-                    if let seconds = value.as(Int.self) {
-                        Text(Pace.clock(seconds))
+                    if let seconds = value.as(Double.self) {
+                        Text(Pace.clock(Int(seconds)))
                     }
                 }
             }
