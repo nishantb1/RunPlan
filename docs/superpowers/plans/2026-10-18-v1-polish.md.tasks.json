@@ -37,12 +37,12 @@
     {
       "id": 4,
       "subject": "Task 5: Docs and final verification",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Record the polish decisions in the spec, add an on-device checklist to the README, and verify everything.\n\n**Files:**\n- README.md\n\n**Acceptance Criteria:**\n- [ ] The spec has a v1 polish note after the stage 5 note, and only the pace cue grace period is still deferred\n- [ ] The README has a v1 polish checklist\n- [ ] TEST passes in full and BUILD succeeds\n\n**Verify:** TEST → `Executed 162 tests, with 0 failures`; BUILD → success\n\n```json:metadata\n{\"files\": [\"README.md\"], \"verifyCommand\": \"TEST \\u2192 `Executed 162 tests, with 0 failures`; BUILD \\u2192 success\", \"acceptanceCriteria\": [\"The spec has a v1 polish note after the stage 5 note, and only the pace cue grace period is still deferred\", \"The README has a v1 polish checklist\", \"TEST passes in full and BUILD succeeds\"]}\n```",
       "blockedBy": [
         3
       ]
     }
   ],
-  "lastUpdated": "2026-10-19T01:19:46.000Z"
+  "lastUpdated": "2026-10-19T01:20:33.000Z"
 }
