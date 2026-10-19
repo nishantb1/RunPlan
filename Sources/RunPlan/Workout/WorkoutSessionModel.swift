@@ -35,6 +35,8 @@ final class WorkoutSessionModel: Identifiable {
     private var uiTimer: Timer?
     private var lastCheckpointSave = Date.distantPast
     private var lastRouteSave = Date.distantPast
+    /// Points in the route when it was last written; nil until the first write.
+    private var savedRouteCount: Int?
 
     /// Checkpoint writes and the final delete run in order on one queue, so an older write can
     /// never land after a newer one, or after the finished workout's checkpoint is deleted.
@@ -244,11 +246,14 @@ final class WorkoutSessionModel: Identifiable {
         let now = Date()
         guard force || now.timeIntervalSince(lastCheckpointSave) >= 5 else { return }
         lastCheckpointSave = now
-        // The route is most of the checkpoint (about 1 MB on a long run), so it is written every
-        // 30 s and on pauses and skips; a crash loses at most that much of the line, never distance.
-        let includingRoute = tracker != nil && (force || now.timeIntervalSince(lastRouteSave) >= 30)
+        // The route (about 1 MB on a long run) is written only when it has grown: every 30 s, or
+        // every 5 s on pauses, skips and auto-pauses. See `ActiveWorkoutStore`.
+        let routeCount = tracker?.route.count
+        let includingRoute = routeCount != nil && routeCount != savedRouteCount
+            && now.timeIntervalSince(lastRouteSave) >= (force ? 5 : 30)
         if includingRoute {
             lastRouteSave = now
+            savedRouteCount = routeCount
         }
         let active = ActiveWorkout(
             workout: workout,

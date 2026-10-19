@@ -2,7 +2,8 @@ import Foundation
 
 /// The crash checkpoint for a workout in progress. The route grows by about a point a second,
 /// so it has its own file, written less often than the small checkpoint of clocks and totals.
-/// A restored run may miss the last few seconds of its route, but never any distance.
+/// A restored run's distance is as current as the last checkpoint; its route may end earlier,
+/// by up to the interval the caller saves the route at, and is never ahead of the distance.
 public struct ActiveWorkoutStore: Sendable {
     static let file = "active.json"
     static let routeFile = "active-route.json"
@@ -12,18 +13,22 @@ public struct ActiveWorkoutStore: Sendable {
         self.store = store
     }
 
-    /// Writes the checkpoint without its route, and the route to its own file as well when
-    /// `includingRoute` is true.
+    /// Writes the checkpoint without its route, then the route to its own file as well when
+    /// `includingRoute` is true. The checkpoint goes first, so a failed or interrupted route
+    /// write never costs the checkpoint.
     public func save(_ active: ActiveWorkout, includingRoute: Bool) throws {
-        var small = active
-        if var outdoor = small.outdoor {
-            if includingRoute {
-                try store.save(SavedRoute(startedAt: active.startedAt, points: outdoor.route), as: Self.routeFile)
-            }
-            outdoor.replaceRoute([])
-            small.outdoor = outdoor
+        guard let outdoor = active.outdoor else {
+            try store.save(active, as: Self.file)
+            return
         }
+        var small = active
+        var stripped = outdoor
+        stripped.replaceRoute([])
+        small.outdoor = stripped
         try store.save(small, as: Self.file)
+        if includingRoute {
+            try store.save(SavedRoute(startedAt: active.startedAt, points: outdoor.route), as: Self.routeFile)
+        }
     }
 
     /// The unfinished workout with the route last saved for it, or nil when there is none.

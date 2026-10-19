@@ -61,6 +61,23 @@ final class ActiveWorkoutStoreTests: XCTestCase {
         XCTAssertEqual(checkpoints.load()?.outdoor?.route, [])
     }
 
+    func testRouteMatchesAStartWithFractionalSeconds() throws {
+        var active = outdoorWorkout(after: 20)
+        active.startedAt = trackStart.addingTimeInterval(0.123_456_789)
+        try checkpoints.save(active, includingRoute: true)
+
+        XCTAssertEqual(checkpoints.load()?.outdoor?.route.count, 21)
+    }
+
+    func testIndoorWorkoutWritesNoRouteFile() throws {
+        let outdoor = outdoorWorkout(after: 5)
+        let indoor = ActiveWorkout(workout: outdoor.workout, mode: .treadmill, startedAt: trackStart, checkpoint: .init())
+        try checkpoints.save(indoor, includingRoute: true)
+
+        XCTAssertEqual(checkpoints.load(), indoor)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("active-route.json").path))
+    }
+
     func testDeleteRemovesBothFiles() throws {
         try checkpoints.save(outdoorWorkout(after: 20), includingRoute: true)
         checkpoints.delete()
