@@ -93,3 +93,13 @@ changes after a reboot, rerun the `netsh` line with the new one.
   is spoken; walk or run off again and it resumes. A pause by hand stays paused.
 - Settings > Change plan opens your answers; Reset everything asks first, then returns to
   onboarding with no runs.
+
+## On-device checklist (v1 polish)
+
+- Auto-pause on: stand at the start waiting for GPS, then set off. It never says "Auto-paused"
+  before you have got going.
+- Pause by hand, walk on a little, resume and run: the summary map shows a gap where you walked
+  while paused.
+- Runs from before this update still show their routes in History.
+- Force-quit mid-run outdoors and reopen: Resume brings the run back with its distance, and its
+  route up to at most 30 s before the quit.

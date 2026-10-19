@@ -200,6 +200,15 @@ chart colour is #C85A12 (light) and #D86A24 (dark), validated for lightness, chr
 Still deferred: a grace period for the pace cue (waiting on an outdoor run), writing the route to
 the crash checkpoint less often, and drawing the route across a pause.
 
+Implementation note (v1 polish, 2026-10-18): older records' routes move to their own files at
+launch, and saving a listed record never drops one. Auto-pause waits until the runner has set
+off from the most accurate early fix, so it never pauses while GPS settles at the start. The
+crash checkpoint keeps its route in `active-route.json`, written after the rest and only when
+the route has grown (every 30 s, or 5 s on pauses and skips); the rest is still written every
+5 s. Each pause, and a restore after a crash, breaks the route: the map draws no line across it
+and ground covered while paused is no longer counted, even with no GPS fix. Still deferred: a
+grace period for the pace cue (waiting on an outdoor run).
+
 ## Screens
 
 1. **Onboarding:** goal, fitness, days and run days, plan length, start date, then a preview of the
