@@ -38,8 +38,9 @@ Rules: one type per file (small private helper views may share their screen's fi
 - **Voice cues off** silences step announcements, mile splits, pace cues and "Workout complete". Countdown beeps and haptics still play, and the app no longer ducks other audio, so music plays at full volume.
 - **Auto-pause** applies outdoors only. Over the last 6 s of used fixes, with at least 4 s of data:
   - while running, a speed below 0.5 m/s pauses the workout
-  - after an automatic pause, a speed above 1.2 m/s resumes it, as long as the distance moved is also more than the
-    two readings' combined accuracy (capped at 15 m), so GPS wander while standing does not resume it
+  - after an automatic pause, a speed above 1.2 m/s resumes it, as long as the runner is also further from where they
+    stopped than the two readings' combined accuracy (capped at 15 m), so GPS wander while standing does not resume it
+    and a walk away from the stop does
   - a pause or resume by hand cancels any automatic state and clears the window, so a manual pause is never resumed
     automatically and a manual resume after standing is not paused again straight away
 
@@ -465,11 +466,12 @@ git commit -m "Add run statistics and plan progress"
 
 **Acceptance Criteria:**
 - [ ] A runner at 4 m/s who stops at 30 s is paused once, at 36 s; setting off at 3 m/s from 60 s resumes once, at 64 s
+- [ ] Walking away from a stop at 1.4 m/s resumes once it is clear of the readings' accuracy (at 68 s with 5 m accuracy, 71 s with 10 m)
 - [ ] GPS readings wandering 4 m while stopped do not resume; a manual resume needs 4 s of fresh data before it can pause again
 - [ ] With under 4 s of fixes nothing happens
 - [ ] A manual pause (not running) is never resumed automatically, and `manualOverride()` cancels an automatic pause
 
-**Verify:** TEST with `--filter AutoPauseDetectorTests` → `Executed 5 tests, with 0 failures`
+**Verify:** TEST with `--filter AutoPauseDetectorTests` → `Executed 6 tests, with 0 failures`
 
 **Steps:**
 
@@ -504,6 +506,27 @@ final class AutoPauseDetectorTests: XCTestCase {
 
         XCTAssertEqual(actions.map { $0.0 }, [36, 64])
         XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume])
+    }
+
+    func testWalkingAwayFromAStopResumes() {
+        // 4 m/s until 30 s, standing at 120 m until 60 s, then walking at 1.4 m/s. The walk clears
+        // the readings' combined accuracy (10 m, or the 15 m cap) after 8 or 11 seconds.
+        for (accuracy, resumeSecond) in [(5.0, 68), (10.0, 71)] {
+            var detector = AutoPauseDetector()
+            var running = true
+            var actions: [(Int, AutoPauseDetector.Action)] = []
+
+            for second in 0...90 {
+                let north = second <= 30 ? Double(4 * second) : second <= 60 ? 120 : 120 + 1.4 * Double(second - 60)
+                if let action = detector.update(fix(at: Double(second), north: north, accuracy: accuracy), isRunning: running) {
+                    actions.append((second, action))
+                    running = action == .resume
+                }
+            }
+
+            XCTAssertEqual(actions.map { $0.0 }, [36, resumeSecond], "accuracy \(accuracy) m")
+            XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume], "accuracy \(accuracy) m")
+        }
     }
 
     func testGPSJitterWhileStoppedDoesNotResume() {
@@ -595,11 +618,14 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
     /// Faster than this after an automatic pause means they have set off again. The gap between
     /// the two thresholds stops GPS jitter flipping between paused and running.
     static let movingMetersPerSecond = 1.2
-    /// Most of a reading's accuracy radius that a resume must clear, so GPS wander while
-    /// standing still never resumes the run.
+    /// The most a resume must move away from where the runner stopped: their two readings'
+    /// accuracy, capped here, so GPS wander while standing still never resumes the run.
     static let maxNoiseFloorMeters = 15.0
 
     private var fixes: [LocationSample] = []
+    /// Where the runner stopped. Measuring the resume from here, not across the 6 s window,
+    /// lets a walk resume too: at walking pace the window alone never clears the accuracy.
+    private var stoppedAt: LocationSample?
     public private(set) var isAutoPaused = false
 
     public init() {}
@@ -612,16 +638,18 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
         guard let first = fixes.first else { return nil }
         let span = sample.timestamp.timeIntervalSince(first.timestamp)
         guard span >= Self.minimumSpanSeconds else { return nil }
-        let distance = Geo.distance(first, sample)
-        let speed = distance / span
-        let noiseFloor = min(first.horizontalAccuracy + sample.horizontalAccuracy, Self.maxNoiseFloorMeters)
+        let speed = Geo.distance(first, sample) / span
 
         if isRunning, !isAutoPaused, speed < Self.stoppedMetersPerSecond {
             isAutoPaused = true
+            stoppedAt = sample
             return .pause
         }
-        if isAutoPaused, speed > Self.movingMetersPerSecond, distance > noiseFloor {
+        if isAutoPaused, speed > Self.movingMetersPerSecond, let stoppedAt {
+            let noiseFloor = min(stoppedAt.horizontalAccuracy + sample.horizontalAccuracy, Self.maxNoiseFloorMeters)
+            guard Geo.distance(stoppedAt, sample) > noiseFloor else { return nil }
             isAutoPaused = false
+            self.stoppedAt = nil
             return .resume
         }
         return nil
@@ -632,6 +660,7 @@ public struct AutoPauseDetector: Codable, Equatable, Sendable {
     /// judging the runner by the seconds they spent standing still.
     public mutating func manualOverride() {
         isAutoPaused = false
+        stoppedAt = nil
         fixes.removeAll()
     }
 }
@@ -1675,7 +1704,7 @@ In `docs/superpowers/specs/2026-10-12-runplan-design.md`, add this paragraph dir
 Implementation note (stage 5, 2026-10-18): settings live in `settings.json` and a workout reads
 them when it starts; voice cues off keeps the countdown beeps and stops lowering music.
 Auto-pause (outdoors, off by default) pauses after speed over the last 6 s falls below 0.5 m/s
-and resumes above 1.2 m/s; a manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
+and resumes above 1.2 m/s once clear of GPS accuracy from where the runner stopped; a manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
 lists runs without loading them; older records keep their route inside and still show it. The
 chart colour is #C85A12 (light) and #D86A24 (dark), validated for lightness, chroma and contrast.
 Still deferred: a grace period for the pace cue (waiting on an outdoor run), writing the route to
@@ -1696,7 +1725,7 @@ Append to `README.md`:
 - Settings > Voice cues off: a workout keeps its beeps but says nothing, and music is not lowered.
 - Settings > Keep screen awake off: the screen dims and locks as usual during a workout.
 - Settings > Auto-pause outdoors on: stand still for several seconds and "Auto-paused" shows and
-  is spoken; set off again and it resumes. A pause by hand stays paused.
+  is spoken; walk or run off again and it resumes. A pause by hand stays paused.
 - Settings > Change plan opens your answers; Reset everything asks first, then returns to
   onboarding with no runs.
 ```

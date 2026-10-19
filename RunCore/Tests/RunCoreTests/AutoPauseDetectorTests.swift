@@ -26,6 +26,27 @@ final class AutoPauseDetectorTests: XCTestCase {
         XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume])
     }
 
+    func testWalkingAwayFromAStopResumes() {
+        // 4 m/s until 30 s, standing at 120 m until 60 s, then walking at 1.4 m/s. The walk clears
+        // the readings' combined accuracy (10 m, or the 15 m cap) after 8 or 11 seconds.
+        for (accuracy, resumeSecond) in [(5.0, 68), (10.0, 71)] {
+            var detector = AutoPauseDetector()
+            var running = true
+            var actions: [(Int, AutoPauseDetector.Action)] = []
+
+            for second in 0...90 {
+                let north = second <= 30 ? Double(4 * second) : second <= 60 ? 120 : 120 + 1.4 * Double(second - 60)
+                if let action = detector.update(fix(at: Double(second), north: north, accuracy: accuracy), isRunning: running) {
+                    actions.append((second, action))
+                    running = action == .resume
+                }
+            }
+
+            XCTAssertEqual(actions.map { $0.0 }, [36, resumeSecond], "accuracy \(accuracy) m")
+            XCTAssertEqual(actions.map { $0.1 }, [.pause, .resume], "accuracy \(accuracy) m")
+        }
+    }
+
     func testGPSJitterWhileStoppedDoesNotResume() {
         var detector = AutoPauseDetector()
         var running = true

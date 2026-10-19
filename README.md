@@ -90,6 +90,6 @@ changes after a reboot, rerun the `netsh` line with the new one.
 - Settings > Voice cues off: a workout keeps its beeps but says nothing, and music is not lowered.
 - Settings > Keep screen awake off: the screen dims and locks as usual during a workout.
 - Settings > Auto-pause outdoors on: stand still for several seconds and "Auto-paused" shows and
-  is spoken; set off again and it resumes. A pause by hand stays paused.
+  is spoken; walk or run off again and it resumes. A pause by hand stays paused.
 - Settings > Change plan opens your answers; Reset everything asks first, then returns to
   onboarding with no runs.

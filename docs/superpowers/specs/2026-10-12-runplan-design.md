@@ -194,7 +194,7 @@ should load routes only when a run is opened.
 Implementation note (stage 5, 2026-10-18): settings live in `settings.json` and a workout reads
 them when it starts; voice cues off keeps the countdown beeps and stops lowering music.
 Auto-pause (outdoors, off by default) pauses after speed over the last 6 s falls below 0.5 m/s
-and resumes above 1.2 m/s; a manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
+and resumes above 1.2 m/s once clear of GPS accuracy from where the runner stopped; a manual pause is never resumed automatically. Routes are stored in `routes/<id>.json`, so History
 lists runs without loading them; older records keep their route inside and still show it. The
 chart colour is #C85A12 (light) and #D86A24 (dark), validated for lightness, chroma and contrast.
 Still deferred: a grace period for the pace cue (waiting on an outdoor run), writing the route to
