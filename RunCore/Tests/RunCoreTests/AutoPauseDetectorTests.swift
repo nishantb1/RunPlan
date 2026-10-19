@@ -102,6 +102,41 @@ final class AutoPauseDetectorTests: XCTestCase {
         XCTAssertEqual(actions.map { $0.1 }, [.pause])
     }
 
+    func testAPoorFirstFixDoesNotCountAsSettingOff() {
+        var detector = AutoPauseDetector()
+        var running = true
+        var actions: [(Int, AutoPauseDetector.Action)] = []
+
+        for second in 0...90 {
+            // The first fix lands 18 m off with 20 m accuracy, then GPS settles on the start.
+            // The runner waits there for 30 s, runs at 4 m/s until 60 s, then stops at 120 m.
+            let sample = second == 0
+                ? fix(at: 0, north: 18, accuracy: 20)
+                : fix(at: Double(second), north: second <= 30 ? 0 : second <= 60 ? Double(4 * (second - 30)) : 120)
+            if let action = detector.update(sample, isRunning: running) {
+                actions.append((second, action))
+                running = action == .resume
+            }
+        }
+
+        XCTAssertEqual(actions.map { $0.0 }, [66])
+        XCTAssertEqual(actions.map { $0.1 }, [.pause])
+    }
+
+    func testMovingWhilePausedByHandIsNotSettingOff() {
+        var detector = AutoPauseDetector()
+        // Paused by hand straight away, the runner walks 60 m to the start of their route.
+        for second in 0...30 {
+            XCTAssertNil(detector.update(fix(at: Double(second), north: Double(2 * second)), isRunning: false))
+        }
+
+        // They tap Resume there and wait for 30 s before setting off.
+        detector.manualOverride()
+        for second in 31...60 {
+            XCTAssertNil(detector.update(fix(at: Double(second), north: 60), isRunning: true))
+        }
+    }
+
     func testNothingHappensWithTooLittleData() {
         var detector = AutoPauseDetector()
         for second in 0...3 {
