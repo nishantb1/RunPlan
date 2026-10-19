@@ -17,6 +17,10 @@ struct RootView: View {
                         .tabItem { Label("Plan", systemImage: "calendar") }
                     HistoryView()
                         .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+                    StatsView()
+                        .tabItem { Label("Progress", systemImage: "chart.bar") }
+                    SettingsView()
+                        .tabItem { Label("Settings", systemImage: "gearshape") }
                 }
             }
         }
