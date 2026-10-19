@@ -1,7 +1,7 @@
 import AVFoundation
 
-/// Speaks cues and plays countdown beeps. The playback category with ducking lets cues play
-/// over music and keeps the app's audio alive in the background.
+/// Speaks cues and plays countdown beeps. The playback category keeps the app's audio alive in
+/// the background; with spoken cues it ducks other audio so they can be heard over music.
 final class AudioCueService {
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -11,9 +11,10 @@ final class AudioCueService {
         beepPlayer = Self.makeBeepPlayer()
     }
 
-    func activate() {
+    /// With `duckingOthers` false (voice cues off) the beeps mix over music without lowering it.
+    func activate(duckingOthers: Bool) {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, options: [.duckOthers])
+        try? session.setCategory(.playback, options: duckingOthers ? [.duckOthers] : [.mixWithOthers])
         try? session.setActive(true)
     }
 

@@ -35,7 +35,7 @@ Rules: one type per file (small private helper views may share their screen's fi
 ## Design decisions fixed by this plan
 
 - **Settings** (`settings.json`): keep screen awake (default on), voice cues (default on), auto-pause (default off). Missing keys decode to their defaults, so settings saved by an older build still load. The session reads the settings once, when the workout starts.
-- **Voice cues off** silences step announcements, mile splits, pace cues and "Workout complete". Countdown beeps and haptics still play.
+- **Voice cues off** silences step announcements, mile splits, pace cues and "Workout complete". Countdown beeps and haptics still play, and the app no longer ducks other audio, so music plays at full volume.
 - **Auto-pause** applies outdoors only. Over the last 6 s of used fixes, with at least 4 s of data:
   - while running, a speed below 0.5 m/s pauses the workout
   - after an automatic pause, a speed above 1.2 m/s resumes it, as long as the distance moved is also more than the
@@ -897,7 +897,8 @@ In `Sources/RunPlan/App/AppModel.swift`:
     }
 
     /// Deletes the plan, every run, the settings and any unfinished workout, which returns the
-    /// app to onboarding.
+    /// app to onboarding. Only call it with no workout in progress (Settings is not reachable
+    /// during one), since it deletes the checkpoint directly.
     func reset() {
         plans.delete()
         runs.deleteAll()
@@ -993,9 +994,14 @@ with:
     /// auto-pause on, the fix may also pause or resume the workout.
     private func record(_ sample: LocationSample) {
         let now = Date()
-        tracker?.record(sample, now: now, counting: engine.state == .running)
+        // The snapshot settles a timed workout that has just run out, so a stop right at the
+        // end cannot pause a workout that is already finished.
+        let isRunning = engine.snapshot(now: now)?.state == .running
+        // Fixes while paused only move the reference point, so the few metres covered before
+        // an automatic resume is detected are not counted.
+        tracker?.record(sample, now: now, counting: isRunning)
         if SampleFilter.accepts(sample, now: now),
-           let action = autoPause?.update(sample, isRunning: engine.state == .running) {
+           let action = autoPause?.update(sample, isRunning: isRunning) {
             applyAutoPause(action)
             return
         }

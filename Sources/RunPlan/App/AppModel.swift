@@ -61,7 +61,8 @@ final class AppModel {
     }
 
     /// Deletes the plan, every run, the settings and any unfinished workout, which returns the
-    /// app to onboarding.
+    /// app to onboarding. Only call it with no workout in progress (Settings is not reachable
+    /// during one), since it deletes the checkpoint directly.
     func reset() {
         plans.delete()
         runs.deleteAll()

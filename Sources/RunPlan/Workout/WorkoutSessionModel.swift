@@ -87,7 +87,7 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     func begin() {
-        audio.activate()
+        audio.activate(duckingOthers: settings.voiceCues)
         engine.start()
         UIApplication.shared.isIdleTimerDisabled = settings.keepScreenAwake
         startLocation()
@@ -146,9 +146,14 @@ final class WorkoutSessionModel: Identifiable {
     /// auto-pause on, the fix may also pause or resume the workout.
     private func record(_ sample: LocationSample) {
         let now = Date()
-        tracker?.record(sample, now: now, counting: engine.state == .running)
+        // The snapshot settles a timed workout that has just run out, so a stop right at the
+        // end cannot pause a workout that is already finished.
+        let isRunning = engine.snapshot(now: now)?.state == .running
+        // Fixes while paused only move the reference point, so the few metres covered before
+        // an automatic resume is detected are not counted.
+        tracker?.record(sample, now: now, counting: isRunning)
         if SampleFilter.accepts(sample, now: now),
-           let action = autoPause?.update(sample, isRunning: engine.state == .running) {
+           let action = autoPause?.update(sample, isRunning: isRunning) {
             applyAutoPause(action)
             return
         }
