@@ -9,6 +9,7 @@ struct SummaryView: View {
 
     @State private var distanceText = ""
     @State private var effort = 0
+    @State private var feeling: Feeling?
     @State private var notes = ""
 
     private var isOutdoor: Bool { session.mode == .outdoor }
@@ -58,11 +59,31 @@ struct SummaryView: View {
                     .pickerStyle(.segmented)
                 }
 
+                Section {
+                    Picker("How did that feel?", selection: $feeling) {
+                        Text("Skip").tag(Feeling?.none)
+                        ForEach(Feeling.allCases, id: \.self) { feeling in
+                            Text(feeling.displayName).tag(Feeling?.some(feeling))
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("How did that feel?")
+                } footer: {
+                    if isLadderWorkout {
+                        Text("Too hard repeats this step next week instead of moving up. Repeating a step is normal.")
+                    }
+                }
+
                 Section("Notes") {
                     TextField("Optional", text: $notes, axis: .vertical)
                 }
             }
             .navigationTitle("Summary")
+            .onAppear {
+                // Not finishing a beginner session is the usual sign to repeat it.
+                if session.endedEarly, isLadderWorkout { feeling = .tooHard }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Discard", role: .destructive) { app.closeSession() }
@@ -72,6 +93,13 @@ struct SummaryView: View {
                 }
             }
         }
+    }
+
+    /// Whether the workout is part of a beginner plan, where Too hard holds the step.
+    private var isLadderWorkout: Bool {
+        app.plan?.weeks.contains { week in
+            week.ladderStep != nil && week.workouts.contains { $0.id == session.workout.id }
+        } ?? false
     }
 
     private var distanceMeters: Double {
@@ -91,6 +119,7 @@ struct SummaryView: View {
             durationSeconds: session.durationSeconds,
             distanceMeters: distanceMeters,
             perceivedEffort: effort == 0 ? nil : effort,
+            feeling: feeling,
             notes: notes,
             splits: session.splits,
             route: session.route

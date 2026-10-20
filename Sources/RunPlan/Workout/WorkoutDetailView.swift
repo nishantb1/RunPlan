@@ -25,6 +25,13 @@ struct WorkoutDetailView: View {
                     Label("Completed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 }
             }
+            if workout.recordID == nil {
+                Section {
+                    Button("Push back a day") { app.pushBack(workout) }
+                } footer: {
+                    Text("Moves this run and the rest of the week's runs one day later. A run pushed past the end of its week is dropped.")
+                }
+            }
             Section("Steps") {
                 ForEach(workout.steps) { step in
                     HStack {

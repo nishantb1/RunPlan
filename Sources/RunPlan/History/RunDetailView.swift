@@ -23,6 +23,9 @@ struct RunDetailView: View {
                 if let effort = record.perceivedEffort {
                     LabeledContent("Effort", value: "\(effort) of 5")
                 }
+                if let feeling = record.feeling {
+                    LabeledContent("Felt", value: feeling.displayName)
+                }
             }
 
             if !record.splits.isEmpty {

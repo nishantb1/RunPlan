@@ -54,6 +54,12 @@ final class AppModel {
         persistPlan()
     }
 
+    /// Moves a planned workout, and the rest of its week, one day later.
+    func pushBack(_ workout: Workout) {
+        plan?.pushBack(workoutID: workout.id)
+        persistPlan()
+    }
+
     func updateSettings(_ change: (inout AppSettings) -> Void) {
         change(&settings)
         try? settingsStore.save(settings)
@@ -112,6 +118,9 @@ final class AppModel {
         records = runs.all()
         if let workoutID = record.workoutID {
             plan?.markCompleted(workoutID: workoutID, recordID: record.id)
+            if record.feeling == .tooHard, let current = plan {
+                plan = PlanGenerator.holdingStep(after: workoutID, in: current)
+            }
             persistPlan()
         }
         closeSession()

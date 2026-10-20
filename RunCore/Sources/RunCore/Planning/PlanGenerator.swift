@@ -7,7 +7,8 @@ import Foundation
 ///   week, unless it is the last, is a cutback at 75 percent; the rest are build weeks.
 /// - Taper: the last run day by date is the time trial, whatever its weekday, so the plan
 ///   always ends with it even when the start date is mid-week.
-/// - Walk-run: a runner who cannot yet run 20 minutes climbs `WalkRunLevel.ladder` one rung
+/// - Beginners aiming at a 5K get the beginner plan instead; see `PlanGenerator+Beginner`.
+/// - Walk-run: a 10K runner who cannot yet run 20 minutes climbs `WalkRunLevel.ladder` one rung
 ///   per build week, then switches to running.
 /// - Running: the week's easy-run length starts at 20 minutes (30 with a race result) and
 ///   grows 10 percent per build week, capped by goal distance. Run days in Monday-first order
@@ -28,6 +29,9 @@ public enum PlanGenerator {
 
     public static func generate(_ profile: Profile, calendar: Calendar = .current) -> Plan {
         guard profile.planWeeks > 0 else { return Plan(profile: profile, weeks: []) }
+        if let first = beginnerStart(for: profile) {
+            return Plan(profile: profile, weeks: beginnerWeeks(1...profile.planWeeks, first: first, profile: profile, calendar: calendar))
+        }
 
         let paces = PaceCalculator.paces(goal: profile.goal, fitness: profile.fitness)
         let builder = WorkoutBuilder(paces: paces, goal: profile.goal)

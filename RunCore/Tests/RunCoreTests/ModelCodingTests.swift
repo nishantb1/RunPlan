@@ -18,6 +18,27 @@ final class ModelCodingTests: XCTestCase {
         try roundTrip(SampleWorkouts.runWalk(on: Date(timeIntervalSince1970: 1_800_000_000)))
     }
 
+    func testWorkoutSavedWithoutTreadmillTargetsOnlyStillLoads() throws {
+        var workout = SampleWorkouts.runWalk(on: Date(timeIntervalSince1970: 1_800_000_000))
+        workout.treadmillTargetsOnly = true
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(workout)) as? [String: Any])
+        json["treadmillTargetsOnly"] = nil
+        let decoded = try JSONDecoder().decode(Workout.self, from: JSONSerialization.data(withJSONObject: json))
+        workout.treadmillTargetsOnly = false
+        XCTAssertEqual(decoded, workout)
+    }
+
+    func testTreadmillOnlyTargetsAreDroppedOutdoors() {
+        var workout = SampleWorkouts.runWalk()
+        XCTAssertEqual(workout.steps(for: .outdoor), workout.steps)
+        workout.treadmillTargetsOnly = true
+        XCTAssertEqual(workout.steps(for: .treadmill), workout.steps)
+        let outdoor = workout.steps(for: .outdoor)
+        XCTAssertEqual(outdoor.map(\.id), workout.steps.map(\.id))
+        XCTAssertEqual(outdoor.map(\.measure), workout.steps.map(\.measure))
+        XCTAssertTrue(outdoor.allSatisfy { $0.targetPaceSecondsPerMile == nil })
+    }
+
     func testRunRecordRoundTrips() throws {
         let record = RunRecord(
             workoutID: UUID(),

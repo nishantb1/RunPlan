@@ -23,7 +23,7 @@ struct PlanPreviewView: View {
                 EmptyView()
             case .ambitious(let suggestedWeeks):
                 Section {
-                    Text("This goal time needs more improvement than \(model.planWeeks) weeks usually allow.")
+                    Text("This goal time needs more improvement than \(model.weeksInRange) weeks usually allow.")
                     if let weeks = suggestedWeeks {
                         Button("Use a \(weeks)-week plan") { model.planWeeks = weeks }
                     }

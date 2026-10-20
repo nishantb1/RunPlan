@@ -82,11 +82,12 @@ final class WorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(workout.kind, .walkRun)
         XCTAssertEqual(workout.title, "Run-walk · 9 × 1:00")
         XCTAssertEqual(shapes(workout), [
-            StepShape(.warmup, .time(seconds: 300)),
-            StepShape(.run, .time(seconds: 60), group: 1, count: 9),
-            StepShape(.walk, .time(seconds: 90), group: 1, count: 9),
-            StepShape(.cooldown, .time(seconds: 300)),
+            StepShape(.warmup, .time(seconds: 300), pace: 1200),
+            StepShape(.run, .time(seconds: 60), pace: 573, group: 1, count: 9),
+            StepShape(.walk, .time(seconds: 90), pace: 1200, group: 1, count: 9),
+            StepShape(.cooldown, .time(seconds: 300), pace: 1200),
         ])
+        XCTAssertTrue(workout.treadmillTargetsOnly)
     }
 
     func testTimeTrial() {
@@ -98,16 +99,18 @@ final class WorkoutBuilderTests: XCTestCase {
             StepShape(.run, .distance(meters: 5000), pace: 483),
             StepShape(.cooldown, .time(seconds: 300), pace: 573),
         ])
+        XCTAssertFalse(workout.treadmillTargetsOnly)
     }
 
-    func testTimeTrialAfterWalkRunHasNoTargets() {
+    func testTimeTrialAfterWalkRunHasTreadmillSpeedsOnly() {
         let workout = builder(.tenK).timeTrial(afterWalkRun: true, on: date)
         XCTAssertEqual(workout.title, "10K time trial")
         XCTAssertEqual(shapes(workout), [
-            StepShape(.warmup, .time(seconds: 300)),
-            StepShape(.run, .distance(meters: 10000)),
-            StepShape(.cooldown, .time(seconds: 300)),
+            StepShape(.warmup, .time(seconds: 300), pace: 1200),
+            StepShape(.run, .distance(meters: 10000), pace: 573),
+            StepShape(.cooldown, .time(seconds: 300), pace: 1200),
         ])
+        XCTAssertTrue(workout.treadmillTargetsOnly)
     }
 
     func testLadderRunningTimeNeverDrops() {

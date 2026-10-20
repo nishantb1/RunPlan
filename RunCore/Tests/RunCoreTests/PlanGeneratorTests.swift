@@ -49,14 +49,14 @@ final class PlanGeneratorTests: XCTestCase {
         ])
     }
 
-    func testNewRunnerClimbsWalkRunLadderThenRuns() {
-        let plan = generate(makeProfile(fitness: .newRunner, weeks: 12))
+    func testTenKNewRunnerClimbsWalkRunLadderThenRuns() {
+        let plan = generate(makeProfile(goal: Goal(distance: .tenK), fitness: .newRunner, weeks: 12))
 
         XCTAssertEqual(shapes(plan.weeks[0].workouts[0]), [
-            StepShape(.warmup, .time(seconds: 300)),
-            StepShape(.run, .time(seconds: 60), group: 1, count: 8),
-            StepShape(.walk, .time(seconds: 90), group: 1, count: 8),
-            StepShape(.cooldown, .time(seconds: 300)),
+            StepShape(.warmup, .time(seconds: 300), pace: 1200),
+            StepShape(.run, .time(seconds: 60), pace: TrainingPaces.defaults.easy, group: 1, count: 8),
+            StepShape(.walk, .time(seconds: 90), pace: 1200, group: 1, count: 8),
+            StepShape(.cooldown, .time(seconds: 300), pace: 1200),
         ])
         XCTAssertEqual(plan.weeks[0].workouts[2].steps[1].repeatCount, 9)
 
@@ -171,13 +171,19 @@ final class PlanGeneratorTests: XCTestCase {
                     case .open: XCTFail("open step in a generated plan: \(context)")
                     }
                     if workout.kind == .walkRun {
-                        XCTAssertNil(step.targetPaceSecondsPerMile, context)
+                        XCTAssertNotNil(step.targetPaceSecondsPerMile, context)
                     }
+                }
+                if week.ladderStep != nil {
+                    XCTAssertTrue(workout.treadmillTargetsOnly, context)
+                } else if workout.kind != .timeTrial {
+                    XCTAssertEqual(workout.treadmillTargetsOnly, workout.kind == .walkRun, context)
                 }
             }
 
             let kinds = week.workouts.map(\.kind)
-            let running = !kinds.contains(.walkRun)
+            // Beginner weeks follow the ladder, not the long-run and 10 percent rules.
+            let running = !kinds.contains(.walkRun) && week.ladderStep == nil
             if week.kind != .taper {
                 XCTAssertFalse(kinds.contains(.timeTrial), context)
                 if running {
@@ -200,8 +206,14 @@ final class PlanGeneratorTests: XCTestCase {
         }
 
         let all = plan.weeks.flatMap(\.workouts)
-        XCTAssertEqual(all.filter { $0.kind == .timeTrial }.count, 1, label)
         let last = plan.weeks.last?.workouts.last
+        // A beginner plan too short to reach the 5K ends with a long session instead.
+        if plan.weeks.last?.ladderStep != nil, last?.kind != .timeTrial {
+            XCTAssertLessThan(profile.planWeeks, Profile.beginnerMinimumWeeks, label)
+            XCTAssertEqual(all.filter { $0.kind == .timeTrial }.count, 0, label)
+            return
+        }
+        XCTAssertEqual(all.filter { $0.kind == .timeTrial }.count, 1, label)
         XCTAssertEqual(last?.kind, .timeTrial, label)
         XCTAssertEqual(last?.steps.map(\.measure).contains(.distance(meters: profile.goal.distance.meters)), true, label)
     }

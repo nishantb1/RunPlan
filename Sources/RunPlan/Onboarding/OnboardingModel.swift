@@ -86,9 +86,19 @@ final class OnboardingModel {
             goal: Goal(distance: distance, targetSeconds: hasGoalTime ? goalSeconds : nil),
             fitness: fitness,
             runDays: Array(runDays),
-            planWeeks: planWeeks,
+            planWeeks: weeksInRange,
             startDate: startDate
         )
+    }
+
+    /// Plan lengths on offer: beginners aiming at a 5K need 8 weeks or more.
+    var planWeeksRange: ClosedRange<Int> {
+        Profile.planWeeksRange(goal: distance, fitness: fitness)
+    }
+
+    /// `planWeeks` moved into `planWeeksRange`, which changes with the goal and fitness.
+    var weeksInRange: Int {
+        min(max(planWeeks, planWeeksRange.lowerBound), planWeeksRange.upperBound)
     }
 
     var canContinue: Bool {

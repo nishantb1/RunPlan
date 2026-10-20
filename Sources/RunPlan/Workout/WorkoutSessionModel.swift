@@ -18,6 +18,8 @@ final class WorkoutSessionModel: Identifiable {
 
     private(set) var snapshot: WorkoutEngine.Snapshot?
     private(set) var isFinished = false
+    /// True once the runner ended the workout before its last step finished.
+    private(set) var endedEarly = false
     /// Outdoor only: distance, pace and route so far.
     private(set) var tracker: OutdoorTracker?
     /// Outdoor only: mile splits, filled in when the workout finishes.
@@ -47,7 +49,7 @@ final class WorkoutSessionModel: Identifiable {
         self.mode = mode
         self.startedAt = Date()
         self.checkpoints = ActiveWorkoutStore(store: store)
-        self.engine = WorkoutEngine(planSteps: workout.steps)
+        self.engine = WorkoutEngine(planSteps: workout.steps(for: mode))
         self.location = mode == .outdoor ? location : nil
         self.tracker = mode == .outdoor ? OutdoorTracker() : nil
         self.settings = settings
@@ -60,7 +62,7 @@ final class WorkoutSessionModel: Identifiable {
         self.mode = active.mode
         self.startedAt = active.startedAt
         self.checkpoints = ActiveWorkoutStore(store: store)
-        self.engine = WorkoutEngine(steps: StepExpander.expand(active.workout.steps), restoring: active.checkpoint)
+        self.engine = WorkoutEngine(steps: StepExpander.expand(active.workout.steps(for: active.mode)), restoring: active.checkpoint)
         self.location = active.mode == .outdoor ? location : nil
         if active.mode == .outdoor {
             // The runner may have moved since the crash, so the route breaks here.
@@ -129,6 +131,7 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     func endEarly() {
+        endedEarly = true
         engine.end()
         refresh()
     }

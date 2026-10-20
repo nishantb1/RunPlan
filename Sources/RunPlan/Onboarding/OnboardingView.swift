@@ -93,6 +93,11 @@ struct OnboardingView: View {
         }
     }
 
+    /// Reads the length moved into range, so the stepper starts from what the plan will use.
+    private var weeks: Binding<Int> {
+        Binding(get: { model.weeksInRange }, set: { model.planWeeks = $0 })
+    }
+
     private var scheduleForm: some View {
         Form {
             Section {
@@ -115,8 +120,14 @@ struct OnboardingView: View {
             } footer: {
                 Text("Pick 2 to 5 days. The last one each week is the long run.")
             }
-            Section("Plan length") {
-                Stepper("\(model.planWeeks) weeks", value: $model.planWeeks, in: Profile.planWeeksRange)
+            Section {
+                Stepper("\(model.weeksInRange) weeks", value: weeks, in: model.planWeeksRange)
+            } header: {
+                Text("Plan length")
+            } footer: {
+                if model.planWeeksRange != Profile.planWeeksRange {
+                    Text("Going from walking to a non-stop 5K takes at least \(model.planWeeksRange.lowerBound) weeks.")
+                }
             }
             Section("Start") {
                 DatePicker(

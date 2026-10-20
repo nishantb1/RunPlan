@@ -39,6 +39,30 @@ public struct Plan: Codable, Equatable, Sendable {
         modifyWorkout(id: workout.id, resort: true) { $0 = workout }
     }
 
+    /// Moves a workout not yet done one day later, with the later not-done workouts in its week,
+    /// so no two runs end up on the same day. One that would leave its week's 7 days is dropped,
+    /// except the plan's last workout, which may end the plan a day later.
+    /// Assumes `calendar` uses the time zone the plan was generated in.
+    public mutating func pushBack(workoutID: UUID, calendar: Calendar = .current) {
+        guard let weekIndex = weeks.firstIndex(where: { $0.workouts.contains { $0.id == workoutID } }) else { return }
+        let week = weeks[weekIndex]
+        guard let index = week.workouts.firstIndex(where: { $0.id == workoutID }),
+              week.workouts[index].recordID == nil,
+              let weekEnd = calendar.date(byAdding: .day, value: week.number * 7, to: calendar.startOfDay(for: profile.startDate)) else {
+            return
+        }
+        let lastID = workouts.last?.id
+        var moved = Array(week.workouts[..<index])
+        for var workout in week.workouts[index...] {
+            if workout.recordID == nil {
+                workout.date = calendar.date(byAdding: .day, value: 1, to: workout.date) ?? workout.date
+                if workout.date >= weekEnd && workout.id != lastID { continue }
+            }
+            moved.append(workout)
+        }
+        weeks[weekIndex].workouts = moved.sorted { $0.date < $1.date }
+    }
+
     private mutating func modifyWorkout(id: UUID, resort: Bool, _ change: (inout Workout) -> Void) {
         for weekIndex in weeks.indices {
             guard let index = weeks[weekIndex].workouts.firstIndex(where: { $0.id == id }) else { continue }

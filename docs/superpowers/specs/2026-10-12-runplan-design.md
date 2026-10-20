@@ -136,8 +136,10 @@ are in `docs/superpowers/plans/2026-10-18-plan-generation.md`.
 
 1. **Paces.** `PaceCalculator` derives easy, tempo, interval and goal pace from the goal time, or
    from the recent race time if the goal is "just finish". A new runner with no times gets
-   conservative fixed defaults and no pace targets on walk-run steps.
-2. **Phases.** Runners who cannot yet run 20 minutes start with a walk-run phase that lengthens the
+   conservative fixed defaults. Walk-run steps get treadmill speeds only (3.0 mph walks, runs at
+   easy pace); outdoors they run without targets or pace cues.
+2. **Phases.** New and 5-minute runners aiming at a 5K get the beginner 5K plan instead; see
+   `2026-10-19-beginner-5k-plan-design.md`. Other runners who cannot yet run 20 minutes start with a walk-run phase that lengthens the
    run intervals until they reach 20 to 30 minutes continuous. Everyone then follows build weeks.
 3. **Weekly shape.** Per week: one long run, at most one quality session (intervals or tempo,
    alternating), and the remaining days easy. With 2 days per week there is one quality or

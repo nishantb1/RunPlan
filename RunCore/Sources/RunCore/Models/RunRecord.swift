@@ -10,6 +10,7 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
     public var durationSeconds: Int
     public var distanceMeters: Double
     public var perceivedEffort: Int?
+    public var feeling: Feeling?
     public var notes: String
     public var splits: [Split]
     public var route: [RoutePoint]
@@ -23,6 +24,7 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
         durationSeconds: Int,
         distanceMeters: Double,
         perceivedEffort: Int? = nil,
+        feeling: Feeling? = nil,
         notes: String = "",
         splits: [Split] = [],
         route: [RoutePoint] = []
@@ -35,6 +37,7 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
         self.durationSeconds = durationSeconds
         self.distanceMeters = distanceMeters
         self.perceivedEffort = perceivedEffort
+        self.feeling = feeling
         self.notes = notes
         self.splits = splits
         self.route = route
