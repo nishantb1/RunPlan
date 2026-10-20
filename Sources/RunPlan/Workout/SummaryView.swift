@@ -120,6 +120,8 @@ struct SummaryView: View {
             distanceMeters: distanceMeters,
             perceivedEffort: effort == 0 ? nil : effort,
             feeling: feeling,
+            runSeconds: session.runSeconds,
+            runMeters: session.runMeters,
             notes: notes,
             splits: session.splits,
             route: session.route

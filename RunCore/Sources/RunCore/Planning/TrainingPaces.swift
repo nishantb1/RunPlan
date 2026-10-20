@@ -11,6 +11,11 @@ public struct TrainingPaces: Equatable, Sendable {
     public var interval: Int
     public var goal: Int?
 
+    /// Easy, tempo and interval paces moved by `seconds` per mile; the goal pace stays.
+    public func shifted(by seconds: Int) -> TrainingPaces {
+        TrainingPaces(easy: easy + seconds, tempo: tempo + seconds, interval: interval + seconds, goal: goal)
+    }
+
     public init(easy: Int, tempo: Int, interval: Int, goal: Int?) {
         self.easy = easy
         self.tempo = tempo

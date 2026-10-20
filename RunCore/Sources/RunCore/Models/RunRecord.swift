@@ -11,6 +11,10 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
     public var distanceMeters: Double
     public var perceivedEffort: Int?
     public var feeling: Feeling?
+    /// Outdoors, the time and GPS distance covered during run steps only; nil on a treadmill
+    /// and on older records.
+    public var runSeconds: Int?
+    public var runMeters: Double?
     public var notes: String
     public var splits: [Split]
     public var route: [RoutePoint]
@@ -25,6 +29,8 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
         distanceMeters: Double,
         perceivedEffort: Int? = nil,
         feeling: Feeling? = nil,
+        runSeconds: Int? = nil,
+        runMeters: Double? = nil,
         notes: String = "",
         splits: [Split] = [],
         route: [RoutePoint] = []
@@ -38,6 +44,8 @@ public struct RunRecord: Identifiable, Codable, Equatable, Sendable {
         self.distanceMeters = distanceMeters
         self.perceivedEffort = perceivedEffort
         self.feeling = feeling
+        self.runSeconds = runSeconds
+        self.runMeters = runMeters
         self.notes = notes
         self.splits = splits
         self.route = route

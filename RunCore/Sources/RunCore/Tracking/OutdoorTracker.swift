@@ -15,12 +15,18 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
     private var stepStartMeters: Double = 0
     private var stepDistanceSent = false
     private var splitCheckedMeters: Double = 0
+    /// Optional so checkpoints saved by an older build still load.
+    private var runPortion: RunPortion?
     public private(set) var lastFixAt: Date?
 
     public init() {}
 
     public var totalMeters: Double { distance.totalMeters }
     public var route: [RoutePoint] { distance.route }
+
+    /// Time and distance covered during run steps; nil before the first update.
+    public var runSeconds: Int? { runPortion.map { Int($0.seconds.rounded()) } }
+    public var runMeters: Double? { runPortion?.meters }
 
     /// Seconds per mile over the last 15 seconds, or nil while there is too little data. It is
     /// not cleared when fixes stop, so check `hasSignal(now:)` before showing it.
@@ -64,6 +70,14 @@ public struct OutdoorTracker: Codable, Equatable, Sendable {
                 .update(totalMeters: distance.totalMeters, elapsed: snapshot.activeElapsed)
                 .map(OutdoorEvent.split)
         }
+
+        var portion = runPortion ?? RunPortion()
+        portion.update(
+            elapsed: snapshot.activeElapsed,
+            totalMeters: distance.totalMeters,
+            counting: snapshot.state == .running && snapshot.step.kind == .run
+        )
+        runPortion = portion
 
         guard snapshot.state == .running else {
             paceMonitor.reset()

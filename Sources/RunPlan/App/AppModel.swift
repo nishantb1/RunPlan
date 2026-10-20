@@ -54,6 +54,21 @@ final class AppModel {
         persistPlan()
     }
 
+    /// A change to the plan's run paces that recent runs call for, if any.
+    var paceSuggestion: PaceSuggestion? {
+        plan.flatMap { PaceInsight.suggestion(for: $0, records: records) }
+    }
+
+    func acceptPaceSuggestion(_ suggestion: PaceSuggestion) {
+        plan?.applyPaceChange(suggestion.change, at: Date())
+        persistPlan()
+    }
+
+    func dismissPaceSuggestion() {
+        plan?.dismissPaceSuggestion(at: Date())
+        persistPlan()
+    }
+
     /// Moves a planned workout, and the rest of its week, one day later.
     func pushBack(_ workout: Workout) {
         plan?.pushBack(workoutID: workout.id)

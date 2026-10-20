@@ -4,10 +4,27 @@ import Foundation
 public struct Plan: Codable, Equatable, Sendable {
     public var profile: Profile
     public var weeks: [Week]
+    /// Seconds per mile added to the generated run paces by accepted pace suggestions; negative
+    /// is faster. Walk targets are never shifted.
+    public var paceOffset: Int
+    /// When a pace suggestion was last accepted or dismissed. Only later runs count as evidence
+    /// for the next one.
+    public var paceCheckedAt: Date?
 
-    public init(profile: Profile, weeks: [Week]) {
+    public init(profile: Profile, weeks: [Week], paceOffset: Int = 0, paceCheckedAt: Date? = nil) {
         self.profile = profile
         self.weeks = weeks
+        self.paceOffset = paceOffset
+        self.paceCheckedAt = paceCheckedAt
+    }
+
+    /// `paceOffset` is 0 when missing, so plans saved by an older build still load.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profile = try container.decode(Profile.self, forKey: .profile)
+        weeks = try container.decode([Week].self, forKey: .weeks)
+        paceOffset = try container.decodeIfPresent(Int.self, forKey: .paceOffset) ?? 0
+        paceCheckedAt = try container.decodeIfPresent(Date.self, forKey: .paceCheckedAt)
     }
 
     /// Every workout, week by week.
@@ -61,6 +78,27 @@ public struct Plan: Codable, Equatable, Sendable {
             moved.append(workout)
         }
         weeks[weekIndex].workouts = moved.sorted { $0.date < $1.date }
+    }
+
+    /// Accepts a pace suggestion: every target in workouts not yet done shifts by `change`
+    /// seconds per mile, except walk targets, and later plan rebuilds keep the change.
+    public mutating func applyPaceChange(_ change: Int, at date: Date) {
+        for weekIndex in weeks.indices {
+            for workoutIndex in weeks[weekIndex].workouts.indices where weeks[weekIndex].workouts[workoutIndex].recordID == nil {
+                for stepIndex in weeks[weekIndex].workouts[workoutIndex].steps.indices {
+                    guard let pace = weeks[weekIndex].workouts[workoutIndex].steps[stepIndex].targetPaceSecondsPerMile,
+                          pace != WorkoutBuilder.walkPaceSecondsPerMile else { continue }
+                    weeks[weekIndex].workouts[workoutIndex].steps[stepIndex].targetPaceSecondsPerMile = pace + change
+                }
+            }
+        }
+        paceOffset += change
+        paceCheckedAt = date
+    }
+
+    /// Declines a pace suggestion until new runs give fresh evidence.
+    public mutating func dismissPaceSuggestion(at date: Date) {
+        paceCheckedAt = date
     }
 
     private mutating func modifyWorkout(id: UUID, resort: Bool, _ change: (inout Workout) -> Void) {

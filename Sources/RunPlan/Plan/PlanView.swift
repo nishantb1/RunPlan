@@ -5,18 +5,25 @@ import RunCore
 struct PlanView: View {
     @Environment(AppModel.self) private var app
     @State private var changingPlan = false
+    /// Answers to fill the change-plan screen with; nil uses the current plan's.
+    @State private var draft: Profile?
     @State private var choosingFreeRun = false
 
     var body: some View {
         NavigationStack {
             List {
                 if let plan = app.plan {
-                    let next = plan.nextWorkout(onOrAfter: Date())
-                    Section(nextHeader(next)) {
-                        if let next {
+                    if let suggestion = app.paceSuggestion {
+                        PaceSuggestionCard(suggestion: suggestion)
+                    }
+                    if let next = plan.nextWorkout(onOrAfter: Date()) {
+                        Section(nextHeader(next)) {
                             NavigationLink(value: next.id) { WorkoutRow(workout: next) }
-                        } else {
-                            Text("Plan complete").foregroundStyle(.secondary)
+                        }
+                    } else {
+                        PlanCompleteCard(plan: plan) { profile in
+                            draft = profile
+                            changingPlan = true
                         }
                     }
                     ForEach(plan.weeks) { week in
@@ -34,21 +41,24 @@ struct PlanView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Change plan") { changingPlan = true }
+                    Button("Change plan") {
+                        draft = nil
+                        changingPlan = true
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Free run") { choosingFreeRun = true }
                 }
             }
             .sheet(isPresented: $changingPlan) {
-                OnboardingView(changing: app.plan?.profile)
+                OnboardingView(changing: draft ?? app.plan?.profile)
             }
             .startRunFlow(isChoosing: $choosingFreeRun) { FreeRun.workout() }
         }
     }
 
-    private func nextHeader(_ next: Workout?) -> String {
-        guard let next, Calendar.current.isDateInToday(next.date) else { return "Next" }
+    private func nextHeader(_ next: Workout) -> String {
+        guard Calendar.current.isDateInToday(next.date) else { return "Next" }
         return "Today"
     }
 

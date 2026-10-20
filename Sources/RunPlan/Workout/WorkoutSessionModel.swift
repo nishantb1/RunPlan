@@ -84,6 +84,9 @@ final class WorkoutSessionModel: Identifiable {
     /// Hidden once GPS is lost, since the pace window does not age by itself.
     var currentPace: Int? { hasSignal() ? tracker?.currentPace : nil }
     var route: [RoutePoint] { tracker?.route ?? [] }
+    /// Outdoor only: time and distance during run steps, for pace suggestions.
+    var runSeconds: Int? { tracker?.runSeconds }
+    var runMeters: Double? { tracker?.runMeters }
 
     /// False outdoors when no usable fix has arrived for a while. Distance holds until it returns.
     func hasSignal(now: Date = Date()) -> Bool {

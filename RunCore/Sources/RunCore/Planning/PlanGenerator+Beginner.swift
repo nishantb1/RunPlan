@@ -23,10 +23,12 @@ extension PlanGenerator {
     }
 
     /// Weeks `numbers` of a beginner plan, whose first build week among them is at step `first`.
-    static func beginnerWeeks(_ numbers: ClosedRange<Int>, first: Int, profile: Profile, calendar: Calendar) -> [Week] {
-        let paces = PaceCalculator.paces(goal: profile.goal, fitness: profile.fitness)
-        let builder = WorkoutBuilder(paces: paces, goal: profile.goal)
-        let ladder = BeginnerLadder(easyPace: paces.easy)
+    /// `paceOffset` shifts the run paces, as `Plan.paceOffset` does, but not the ladder, so
+    /// steps keep their meaning when a plan is rebuilt.
+    static func beginnerWeeks(_ numbers: ClosedRange<Int>, first: Int, profile: Profile, paceOffset: Int = 0, calendar: Calendar) -> [Week] {
+        let generated = PaceCalculator.paces(goal: profile.goal, fitness: profile.fitness)
+        let builder = WorkoutBuilder(paces: generated.shifted(by: paceOffset), goal: profile.goal)
+        let ladder = BeginnerLadder(easyPace: generated.easy)
         let start = calendar.startOfDay(for: profile.startDate)
         let kinds = numbers.map { weekKind($0, of: profile.planWeeks) }
         let steps = ladder.steps(for: kinds, first: first)
@@ -78,7 +80,8 @@ extension PlanGenerator {
               index + 1 < plan.weeks.count else {
             return plan
         }
-        let rebuilt = beginnerWeeks(plan.weeks[index + 1].number...last.number, first: step, profile: plan.profile, calendar: calendar)
+        let rebuilt = beginnerWeeks(plan.weeks[index + 1].number...last.number, first: step, profile: plan.profile,
+                                    paceOffset: plan.paceOffset, calendar: calendar)
         var result = plan
         for (offset, week) in rebuilt.enumerated() {
             let position = index + 1 + offset
