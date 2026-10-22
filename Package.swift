@@ -27,6 +27,7 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources/beep.wav"),
+                .copy("Resources/silence.wav"),
             ],
             swiftSettings: [
                 .swiftLanguageMode(.v5),

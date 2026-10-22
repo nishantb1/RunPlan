@@ -100,7 +100,7 @@ final class WorkoutSessionModel: Identifiable {
     }
 
     func begin() {
-        audio.activate(duckingOthers: settings.voiceCues)
+        audio.activate()
         engine.start()
         UIApplication.shared.isIdleTimerDisabled = settings.keepScreenAwake
         startLocation()
