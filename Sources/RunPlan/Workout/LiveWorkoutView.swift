@@ -137,12 +137,18 @@ struct LiveWorkoutView: View {
 
     private func controls(_ snapshot: WorkoutEngine.Snapshot) -> some View {
         HStack(spacing: 24) {
-            controlButton("backward.end.fill", label: "Back") { session.skipBack() }
+            // Back and Skip need a hold, so a stray tap mid-run cannot lose the current step.
+            HoldControlButton(systemName: "backward.end.fill", label: "Back", hint: "Hold to go back a step.") {
+                session.skipBack()
+            }
             controlButton(session.isPaused ? "play.fill" : "pause.fill", label: session.isPaused ? "Resume" : "Pause") {
                 if session.isPaused { session.resume() } else { session.pause() }
             }
             // On the last step, skipping forward would end the run without asking; Stop asks.
-            controlButton("forward.end.fill", label: "Skip", enabled: snapshot.nextStep != nil) { session.skipForward() }
+            HoldControlButton(systemName: "forward.end.fill", label: "Skip", hint: "Hold to skip to the next step.",
+                              enabled: snapshot.nextStep != nil) {
+                session.skipForward()
+            }
             controlButton("stop.fill", label: "End workout") { confirmingEnd = true }
         }
     }
@@ -185,5 +191,57 @@ struct LiveWorkoutView: View {
         case .walk, .recovery: return .yellow
         case .warmup, .cooldown: return .cyan
         }
+    }
+}
+
+/// A control button that acts only after being held, with a ring that fills while held. Letting
+/// go early does nothing. VoiceOver users activate it directly, as with any other button.
+private struct HoldControlButton: View {
+    let systemName: String
+    let label: String
+    let hint: String
+    var enabled = true
+    let action: () -> Void
+
+    private static let holdDuration = 0.6
+
+    @State private var fill: CGFloat = 0
+    @State private var completions = 0
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 30))
+            .frame(width: 72, height: 72)
+            .background(Color.white.opacity(0.15), in: Circle())
+            .overlay {
+                Circle()
+                    .trim(from: 0, to: fill)
+                    .stroke(Color.white, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .padding(2)
+            }
+            .foregroundStyle(.white)
+            .contentShape(Circle())
+            .onLongPressGesture(minimumDuration: Self.holdDuration) {
+                completions += 1
+                fill = 0
+                action()
+            } onPressingChanged: { pressing in
+                if pressing {
+                    withAnimation(.linear(duration: Self.holdDuration)) { fill = 1 }
+                } else {
+                    withAnimation(.easeOut(duration: 0.15)) { fill = 0 }
+                }
+            }
+            .sensoryFeedback(.impact, trigger: completions)
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.3)
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityHint(hint)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                if enabled { action() }
+            }
     }
 }
