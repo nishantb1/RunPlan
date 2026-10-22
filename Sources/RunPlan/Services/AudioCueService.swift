@@ -4,6 +4,7 @@ import AVFoundation
 /// the background, mixed over music. Other audio is ducked only while a cue is being spoken:
 /// iOS restores ducked audio only when the ducking session deactivates, so ducking for the
 /// whole workout would leave music lowered after the first cue.
+@MainActor
 final class AudioCueService: NSObject, AVSpeechSynthesizerDelegate {
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -63,12 +64,16 @@ final class AudioCueService: NSObject, AVSpeechSynthesizerDelegate {
         beepPlayer?.play()
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        utteranceEnded()
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.utteranceEnded()
+        }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        utteranceEnded()
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.utteranceEnded()
+        }
     }
 
     private func utteranceEnded() {
@@ -100,14 +105,13 @@ final class AudioCueService: NSObject, AVSpeechSynthesizerDelegate {
 
     /// A phone call or alarm stops our audio. Once it ends, start the silent loop again, or the
     /// app would be suspended for the rest of a treadmill run.
-    @objc private func handleInterruption(_ notification: Notification) {
-        guard isActive,
-              let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+    @objc nonisolated private func handleInterruption(_ notification: Notification) {
+        guard let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
               AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
-        DispatchQueue.main.async { [self] in
-            guard isActive else { return }
+        Task { @MainActor in
+            guard self.isActive else { return }
             try? AVAudioSession.sharedInstance().setActive(true)
-            keepAlivePlayer?.play()
+            self.keepAlivePlayer?.play()
         }
     }
 
